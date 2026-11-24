@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid';
 import { formatCents, lineAmountCents } from '@/domain/money';
 import { SERVICE_CATEGORIES, EXPENSE_CATEGORIES, categoryLabelKey, type Category, type RecordKind } from '@/domain/categories';
 import { useSaveRecord, useRecord, useLineItems, useDeleteRecord, useVehicle } from '@/data/queries';
-import type { LineItemInput, RecordInput } from '@/data/repositories/records';
+import { RecordSaveError, type LineItemInput, type RecordInput } from '@/data/repositories/records';
 import { Button, Card, DateField, Divider, MoneyField, Screen, Text, TextField } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 
@@ -96,6 +96,13 @@ function LineItemRow({ item, onChange, onRemove }: {
       </View>
     </View>
   );
+}
+
+function saveErrorKey(err: unknown): string {
+  if (!(err instanceof RecordSaveError)) return 'record.saveError';
+  if (err.code === '22023' || err.code === '23514') return 'record.saveInvalid';
+  if (err.code === '42501') return 'record.saveForbidden';
+  return 'record.saveError';
 }
 
 export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved, onDeleted, onCancel }: Props) {
@@ -215,25 +222,14 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
       position: i,
     }));
 
-    const odomEntry = odomNum
-      ? {
-          id: uuid(),
-          vehicle_id: vehicleId,
-          value: odomNum,
-          unit: (vehicle?.odometer_unit ?? 'mi') as 'mi' | 'km',
-          read_on: date,
-          source: 'record' as const,
-          record_id: id,
-        }
-      : null;
-
     try {
-      await save({ record, items: lineItems, odometer: odomEntry });
+      await save({ record, items: lineItems });
       onSaved(id);
-    } catch {
-      Alert.alert('Error', tr('record.saveError'));
+    } catch (err) {
+      // Validation / DB errors are never queued (T097): tell the user so they can fix the record.
+      Alert.alert(tr('common.error'), tr(saveErrorKey(err)));
     }
-  }, [vehicleId, recordId, kind, category, date, odometer, isDiy, shopName, subtotalCents, taxCents, totalCents, notes, items, vehicle, save, tr, onSaved]);
+  }, [vehicleId, recordId, kind, category, date, odometer, isDiy, shopName, subtotalCents, taxCents, totalCents, notes, items, save, tr, onSaved]);
 
   const handleDelete = () => {
     Alert.alert(

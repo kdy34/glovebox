@@ -10,6 +10,8 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/data/auth';
+import { initSync } from '@/data/sync';
+import { SyncBanner } from '@/features/sync/SyncBanner';
 import { initAnalytics } from '@/services/analytics';
 import { initSentry, wrapRoot } from '@/services/sentry';
 import { ThemeProvider, useTheme } from '@/ui/theme';
@@ -36,12 +38,18 @@ function RootNavigator() {
     if (!loading) void SplashScreen.hideAsync();
   }, [loading]);
 
-  if (loading) return null;
   const signedIn = !!session;
+  // Start the outbox flusher once a session exists (RLS needs the user's JWT).
+  useEffect(() => {
+    if (signedIn) initSync();
+  }, [signedIn]);
+
+  if (loading) return null;
 
   return (
     <>
       <StatusBar style={t.dark ? 'light' : 'dark'} />
+      {signedIn && <SyncBanner />}
       <Stack
         screenOptions={{
           headerTintColor: t.colors.text,

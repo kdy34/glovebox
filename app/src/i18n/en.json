@@ -14,7 +14,8 @@
     "offline": "You’re offline. Changes will sync when you’re back online.",
     "syncing": "Syncing…",
     "synced": "All changes saved",
-    "somethingWrong": "Something went wrong. Please try again."
+    "somethingWrong": "Something went wrong. Please try again.",
+    "error": "Error"
   },
   "onboarding": {
     "slide1Title": "Snap a receipt. Get a record.",
@@ -122,7 +123,9 @@
     "saveError": "Could not save record. Please try again.",
     "deleteTitle": "Delete record",
     "deleteBody": "This will permanently delete this record. This cannot be undone.",
-    "deleteConfirm": "Delete"
+    "deleteConfirm": "Delete",
+    "saveInvalid": "This record couldn't be saved because some amounts don't add up. Check the line items and totals, then try again.",
+    "saveForbidden": "You don't have permission to change this record."
   },
   "odometer": {
     "newTitle": "Log odometer",
@@ -138,7 +141,14 @@
     "offline": "Offline — changes saved locally",
     "syncing": "Syncing…",
     "synced": "All changes saved",
-    "error": "Some changes didn't sync. Will retry."
+    "error": "Some changes didn't sync. Will retry.",
+    "dead_one": "{{count}} change couldn't sync — tap to review",
+    "dead_other": "{{count}} changes couldn't sync — tap to review",
+    "reviewHint": "These changes were tried 5 times and didn't go through. Retry, or discard them.",
+    "retry": "Retry",
+    "discard": "Discard",
+    "changeRecord": "Record: {{title}}",
+    "changeTable": "Change to {{table}}"
   },
   "legal": {
     "privacy": "Privacy Policy",

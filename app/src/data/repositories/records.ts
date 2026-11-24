@@ -1,71 +1,23 @@
 // Service record repository: all writes go through the save_record RPC (one transaction).
 import { supabase } from '../supabase';
-import { enqueueWrite } from '../sync';
+import { enqueue, enqueueWrite, isOffline } from '../sync';
+import { saveRecordOrQueue, type RpcResponse, type SaveRecordArgs } from '../recordSave';
 import type { RecordRow, LineItemRow } from '../types';
 
-export interface LineItemInput {
-  id: string;
-  item_type: 'part' | 'labor' | 'fee' | 'discount';
-  description: string;
-  quantity: number;
-  unit_price_cents: number;
-  amount_cents: number;
-  position: number;
-}
+export type { LineItemInput, RecordInput, SaveRecordArgs } from '../recordSave';
+export { RecordSaveError } from '../recordSave';
 
-export interface RecordInput {
-  id: string;
-  vehicle_id: string;
-  kind: 'service' | 'expense';
-  category: string;
-  title: string;
-  performed_on: string; // YYYY-MM-DD
-  odometer?: number | null;
-  shop_name?: string | null;
-  shop_address?: string | null;
-  is_diy?: boolean;
-  currency?: string;
-  subtotal_cents: number;
-  tax_cents: number;
-  total_cents: number;
-  notes?: string | null;
-  source?: 'manual' | 'ai';
-  extraction_id?: string | null;
-}
-
-export interface OdometerInput {
-  id: string;
-  vehicle_id: string;
-  value: number;
-  unit: 'mi' | 'km';
-  read_on: string; // YYYY-MM-DD
-  source?: 'manual' | 'record' | 'receipt';
-  record_id?: string | null;
-}
-
-export interface SaveRecordArgs {
-  record: RecordInput;
-  items: LineItemInput[];
-  odometer?: OdometerInput | null;
-}
-
+/**
+ * Saves via the save_record RPC (record, line items, linked odometer reading and rule
+ * reset in one transaction). Offline or on a network error the same RPC is queued in the
+ * outbox (T096/T097). Validation / DB errors throw RecordSaveError and are never queued.
+ */
 export async function saveRecord(args: SaveRecordArgs): Promise<RecordRow> {
-  const { data, error } = await (supabase.rpc as any)('save_record', {
-    p_record: args.record,
-    p_items: args.items,
-  }) as { data: RecordRow | null; error: { message: string } | null };
-  if (error) {
-    // If offline, queue the individual parts
-    await enqueueWrite('service_records', 'upsert', args.record as unknown as Record<string, unknown>, args.record.id);
-    for (const item of args.items) {
-      await enqueueWrite('line_items', 'upsert', { ...item, record_id: args.record.id } as unknown as Record<string, unknown>, item.id);
-    }
-    if (args.odometer) {
-      await enqueueWrite('odometer_readings', 'upsert', args.odometer as unknown as Record<string, unknown>, args.odometer.id);
-    }
-    // Return optimistic data
-    return args.record as unknown as RecordRow;
-  }
+  const { data } = await saveRecordOrQueue(args, {
+    isOffline,
+    rpc: async (fn, rpcArgs) => (await (supabase.rpc as any)(fn, rpcArgs)) as RpcResponse,
+    enqueue,
+  });
   return data as RecordRow;
 }
 

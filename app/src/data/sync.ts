@@ -1,52 +1,52 @@
-// Sync service: flushes the outbox on reconnect and app foreground.
-// Keeps a single flush running at a time (no concurrent flushes).
+// Sync service: flushes the outbox on reconnect, app foreground, enqueue, and when the
+// head entry's backoff elapses (T098). Keeps a single flush running at a time.
 import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
 import { supabase } from './supabase';
-import { createOutbox, type Executor, type OutboxEntry, type FlushResult } from './outbox';
+import { createOutbox, createSupabaseExecutor, type NewOutboxEntry, type SupabaseLike } from './outbox';
 import { sqliteOutboxStore, initOutboxDb } from './outbox.sqlite';
 
 const outbox = createOutbox(sqliteOutboxStore);
+const execute = createSupabaseExecutor(supabase as unknown as SupabaseLike);
 
 let flushing = false;
+let flushAgain = false;
 let initialized = false;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Build an Executor that sends entries to Supabase via upsert / delete. */
-function buildSupabaseExecutor(): Executor {
-  return async (entries: OutboxEntry[]): Promise<FlushResult> => {
-    const succeeded: string[] = [];
-    const failed: string[] = [];
-
-    for (const entry of entries) {
-      try {
-        const table = (supabase as any).from(entry.table) as {
-          upsert: (data: unknown, opts: object) => Promise<{ error: { message: string } | null }>;
-          delete: () => { eq: (col: string, val: unknown) => Promise<{ error: { message: string } | null }> };
-        };
-        if (entry.operation === 'upsert') {
-          const { error } = await table.upsert(entry.payload, { onConflict: 'id' });
-          if (error) throw new Error(error.message);
-        } else {
-          const { error } = await table.delete().eq('id', (entry.payload as { id: string }).id);
-          if (error) throw new Error(error.message);
-        }
-        succeeded.push(entry.id);
-      } catch {
-        failed.push(entry.id);
-      }
-    }
-
-    return { succeeded, failed };
-  };
+export async function isOffline(): Promise<boolean> {
+  const s = await NetInfo.fetch();
+  return s.isConnected === false || s.isInternetReachable === false;
 }
 
-async function tryFlush(): Promise<void> {
-  if (flushing) return;
+function scheduleRetry(at: number | null): void {
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = null;
+  if (at === null) return;
+  retryTimer = setTimeout(
+    () => {
+      retryTimer = null;
+      void tryFlush();
+    },
+    Math.max(0, at - Date.now()),
+  );
+}
+
+export async function tryFlush(): Promise<void> {
+  if (flushing) {
+    flushAgain = true;
+    return;
+  }
   flushing = true;
   try {
-    const { isConnected } = await NetInfo.fetch();
-    if (!isConnected) return;
-    await outbox.flush(buildSupabaseExecutor());
+    do {
+      flushAgain = false;
+      if (await isOffline()) return; // the NetInfo listener flushes on reconnect
+      const result = await outbox.flush(execute);
+      scheduleRetry(result.nextAttemptAt);
+    } while (flushAgain);
+  } catch {
+    // Store errors are logged by Sentry; the next trigger retries.
   } finally {
     flushing = false;
   }
@@ -59,36 +59,35 @@ export function initSync(): void {
 
   initOutboxDb();
 
-  // Flush on network reconnect
   NetInfo.addEventListener((state) => {
     if (state.isConnected) void tryFlush();
   });
-
-  // Flush when app comes to foreground
   AppState.addEventListener('change', (s) => {
     if (s === 'active') void tryFlush();
   });
 
-  // Initial flush
   void tryFlush();
 }
 
-/** Enqueue a write to the outbox. Call instead of writing to Supabase directly. */
+/** Queue an entry and try to send it right away. */
+export async function enqueue(entry: NewOutboxEntry): Promise<void> {
+  await outbox.enqueue(entry);
+  void tryFlush();
+}
+
+/** Enqueue a table write. Call instead of writing to Supabase directly. */
 export async function enqueueWrite(
   table: string,
   operation: 'upsert' | 'delete',
   payload: Record<string, unknown>,
   id: string,
 ): Promise<void> {
-  await outbox.enqueue({
-    id,
-    table,
-    operation,
-    payload,
-    created_at: Date.now(),
-    status: 'pending',
-    attempts: 0,
-  });
+  await enqueue({ id, table, operation, payload });
+}
+
+/** Put a dead entry back in the queue and flush. */
+export async function retryDead(id: string): Promise<void> {
+  await outbox.retry(id);
   void tryFlush();
 }
 

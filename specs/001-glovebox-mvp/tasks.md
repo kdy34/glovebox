@@ -231,6 +231,14 @@
 - [ ] T094 [US2] Support multi-page receipts: allow up to 3 images per scan in `app/app/scan/index.tsx`, and send them as one request to `supabase/functions/extract-receipt/index.ts` (the edge case "receipt split across two photos").
 - [ ] T095 [P] Add a nightly storage orphan sweep (objects with no matching `attachments` or `vehicles` row, and exports older than 24 h) as a scheduled function in `supabase/functions/storage-sweep/index.ts`, together with its cron entry.
 
+## Converge: offline record sync (FR-010 / FR-022)
+
+A converge pass found that an offline `saveRecord` queued separate `service_records`, `line_items` and `odometer_readings` upserts. That bypassed `save_record`: old line items were never replaced, a second odometer reading was created, and rule resets (FR-022) were skipped. It also queued validation errors and dropped failed entries after one attempt. Tests are in `app/__tests__/data/outbox.test.ts`.
+
+- [x] T096 [US1] Add an `rpc` outbox operation. When `saveRecord` fails offline, enqueue one `rpc` entry `{fn:'save_record', args:{p_record, p_items}}` keyed by the record id, and remove the separate table upserts (`app/src/data/outbox.ts`, `app/src/data/recordSave.ts`, `app/src/data/repositories/records.ts`). Tests: an edited offline record replaces its line items; no duplicate odometer reading.
+- [x] T097 [US1] Queue only when the network is down (NetInfo offline, or a fetch/network error with no SQLSTATE). Validation and DB errors (e.g. 22023, 23514, 42501) throw `RecordSaveError` and are shown in the record form, never queued. Test: a validation error is not queued.
+- [x] T098 [US1] Never drop failed entries. Increment `attempts` and retry with exponential backoff (2 s base, 5 min cap, timer in `sync.ts`). After 5 attempts, set status `dead` and show it in `SyncBanner` ("1 change couldn't sync — tap to review", with Retry/Discard). Stop each flush at the first failure so order is preserved. Migrate the SQLite outbox schema to v2. Mount `SyncBanner` and call `initSync()` for signed-in users. Test: a transient failure is retried, not lost.
+
 ---
 
 ## Backlog (future specs, not part of 001)
