@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "test": "npm run test:domain && npm run test:ui",
-    "test:domain": "tsx --test __tests__/domain/*.test.ts __tests__/data/*.test.ts",
+    "test:domain": "tsx --test __tests__/domain/*.test.ts __tests__/data/*.test.ts __tests__/contracts/*.test.ts",
     "test:ui": "jest --passWithNoTests",
     "seed:demo": "tsx scripts/seedDemo.ts",
     "bootstrap": "./scripts/bootstrap.sh"

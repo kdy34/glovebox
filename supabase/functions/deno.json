@@ -11,6 +11,7 @@
     "jszip": "npm:jszip@3.10.1",
     "zod": "npm:zod@3.25.76",
     "@std/assert": "jsr:@std/assert@1",
-    "@std/http/server": "https://deno.land/std@0.168.0/http/server.ts"
+    "@std/http/server": "https://deno.land/std@0.168.0/http/server.ts",
+    "zod/v4": "npm:zod@3.25.76/v4"
   }
 }

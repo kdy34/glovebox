@@ -132,8 +132,8 @@
 
 **Tests first**
 
-- [ ] T046 [P] [US2] Write the contract test `app/__tests__/contracts/extractionSchema.test.ts`: the app Zod schema equals `contracts/receipt-extraction.schema.json`.
-- [ ] T047 [P] [US2] Write Deno tests in `supabase/functions/extract-receipt/index.test.ts` with a mocked provider:
+- [x] T046 [P] [US2] Write the contract test `app/__tests__/contracts/extractionSchema.test.ts`: the app Zod schema equals `contracts/receipt-extraction.schema.json`.
+- [x] T047 [P] [US2] Write Deno tests in `supabase/functions/extract-receipt/index.test.ts` with a mocked provider:
   - auth and ownership, MIME and size limits
   - quota consume and refund
   - invalid output rejected
@@ -145,9 +145,14 @@
 
 **Implementation**
 
-- [ ] T050 [P] [US2] Write the provider interface and Gemini implementation (JSON mode + response schema, 30 s timeout) in `supabase/functions/_shared/ai/provider.ts` and `supabase/functions/_shared/ai/gemini.ts`.
-- [ ] T051 [P] [US2] Write the system prompt (data-not-instructions, US receipt conventions, cents, ISO dates, confidence calibration) in `supabase/functions/_shared/ai/prompt.ts`, and the Zod schema in `supabase/functions/_shared/ai/schema.ts`.
-- [ ] T052 [US2] Implement `supabase/functions/extract-receipt/index.ts` per the contract.
+- [x] T050 [P] [US2] Write the provider interface and Gemini implementation (JSON mode + response schema, 30 s timeout) in `supabase/functions/_shared/ai/provider.ts` and `supabase/functions/_shared/ai/gemini.ts`.
+- [x] T051 [P] [US2] Write the system prompt (data-not-instructions, US receipt conventions, cents, ISO dates, confidence calibration) in `supabase/functions/_shared/ai/prompt.ts`, and the Zod schema in `supabase/functions/_shared/ai/schema.ts`.
+- [x] T052 [US2] Implement `supabase/functions/extract-receipt/index.ts` per the contract.
+  > Done 2026-11-24 (server side).
+  > - Gemini gets an OpenAPI-subset `responseSchema` derived at runtime from the server Zod schema (`geminiResponseSchema()`), because the docs don't confirm which JSON Schema keywords `responseJsonSchema` accepts. Zod is the real check.
+  > - With `monetization_enabled` off, everyone gets the free scan limit, per contracts/app-config.md. quickstart.md US7 says "the limit lifts", which contradicts this; decide which is right before US7.
+  > - `unreadable` means `is_receipt` is true but there's no total and no line items.
+  > - Not yet run: a real Gemini call (no key in this environment).
 - [ ] T053 [P] [US2] Implement `app/src/domain/extraction.ts` and `app/src/domain/duplicates.ts`.
 - [ ] T054 [P] [US2] Wrap the iOS VisionKit scanner in `app/src/platform/documentScanner.ts`, with the image-picker and PDF fallback.
 - [ ] T055 [US2] Implement the receipt service (compress → sha256 → upload → attachment row → invoke the function → map errors to the manual fallback) in `app/src/services/receipts.ts`.
