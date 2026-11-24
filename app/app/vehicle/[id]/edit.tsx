@@ -37,7 +37,7 @@ export default function EditVehicle() {
     setModel(vehicle.model);
     setTrim(vehicle.trim ?? '');
     setNickname(vehicle.nickname ?? '');
-    setUnit(vehicle.odometer_unit);
+    setUnit(vehicle.odometer_unit as 'mi' | 'km');
   }, [vehicle]);
   /* eslint-enable react-hooks/set-state-in-effect */
 

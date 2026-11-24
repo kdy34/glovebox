@@ -126,7 +126,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!existing) return;
-    setKind(existing.kind);
+    setKind(existing.kind as RecordKind);
     setCategory(existing.category as Category);
     setDate(existing.performed_on);
     setOdometer(existing.odometer ? String(existing.odometer) : '');
@@ -140,7 +140,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
     if (!existingItems.length) return;
     setItems(existingItems.map((it) => ({
       id: it.id,
-      item_type: it.item_type,
+      item_type: it.item_type as ItemType,
       description: it.description,
       quantity: it.quantity,
       unit_price_cents: it.unit_price_cents,

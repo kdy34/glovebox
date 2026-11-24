@@ -35,11 +35,11 @@ export default function NewOdometer() {
     // Map DB rows to domain Reading shape
     const domainReadings: Reading[] = (readings as OdometerRow[]).map((r) => ({
       value: r.value,
-      unit: r.unit,
+      unit: r.unit as 'mi' | 'km',
       readOn: r.read_on,
       isExcluded: r.is_excluded,
     }));
-    const check = checkNewReading(domainReadings, { value: numeric, unit, readOn: date });
+    const check = checkNewReading(domainReadings, { value: numeric, unit: unit as 'mi' | 'km', readOn: date });
     if (!check.ok && !override) {
       const isRollback = check.warning === 'rollback';
       const msg = isRollback ? tr('odometer.rollbackWarning') : tr('odometer.jumpWarning');
@@ -48,7 +48,7 @@ export default function NewOdometer() {
     }
 
     try {
-      await saveReading({ vehicle_id: vehicleId, value: numeric, unit, read_on: date, source: 'manual' });
+      await saveReading({ vehicle_id: vehicleId, value: numeric, unit: unit as 'mi' | 'km', read_on: date, source: 'manual' });
       router.back();
     } catch {
       Alert.alert('Error', tr('odometer.saveError'));
