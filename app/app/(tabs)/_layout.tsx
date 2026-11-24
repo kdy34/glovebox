@@ -41,7 +41,7 @@ export default function TabsLayout() {
             name={name}
             options={{
               title: tr(`tabs.${key}`),
-              tabBarIcon: ({ color }) => <Icon d={icons[key]} color={color} />,
+              tabBarIcon: ({ color }) => <Icon d={icons[key]} color={color as string} />,
             }}
           />
         );

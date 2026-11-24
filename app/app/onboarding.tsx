@@ -1,6 +1,6 @@
 // T024 — three value slides, then sign-in. Respects Reduce Motion (no auto-advance).
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FlatList, useWindowDimensions, View, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -46,9 +46,9 @@ export default function Onboarding() {
   const { width } = useWindowDimensions();
   const [index, setIndex] = useState(0);
   const listRef = useRef<FlatList<(typeof slides)[number]>>(null);
-  const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+  const onViewable = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems[0]?.index != null) setIndex(viewableItems[0].index);
-  }).current;
+  }, []);
 
   const last = index === slides.length - 1;
   return (

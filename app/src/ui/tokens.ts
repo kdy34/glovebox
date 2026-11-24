@@ -58,7 +58,7 @@ export const palettes: { light: Palette; dark: Palette } = {
 };
 
 /** [foreground, background, minimum ratio] pairs actually used for text in the UI. */
-export const textPairs: ReadonlyArray<[ColorToken, ColorToken, number]> = [
+export const textPairs: readonly [ColorToken, ColorToken, number][] = [
   ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surfaceAlt', 4.5],
   ['textMuted', 'bg', 4.5], ['textMuted', 'surface', 4.5], ['textMuted', 'surfaceAlt', 4.5],
   ['onPrimary', 'primary', 4.5], ['onAccent', 'accent', 4.5],

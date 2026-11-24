@@ -50,5 +50,5 @@ cd supabase/functions && deno task test
 ## Status
 
 - Progress lives in `specs/001-glovebox-mvp/tasks.md`, the source of truth.
-- Last checkpoint: Phase 2 (Foundational) done, except T017 (DateField, Sheet, Toast).
-- **Next:** Phase 3 / US1 (T029, T031–T039).
+- Last checkpoint: Phase 2 (Foundational) + Phase 3 / US1 complete (T017, T029, T031–T039).
+- **Next:** Phase 4 / US6 (account & data control, T040–T045), required before TestFlight.

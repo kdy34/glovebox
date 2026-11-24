@@ -14,7 +14,8 @@ npx expo install \
   expo-secure-store expo-sqlite expo-crypto expo-file-system expo-network \
   expo-image-picker expo-image-manipulator expo-document-picker \
   expo-notifications expo-print expo-sharing expo-apple-authentication expo-localization expo-web-browser \
-  @react-native-async-storage/async-storage @react-native-community/netinfo
+  @react-native-async-storage/async-storage @react-native-community/netinfo \
+  @react-native-community/datetimepicker
 
 npm install \
   @supabase/supabase-js react-native-url-polyfill @tanstack/react-query @tanstack/react-query-persist-client \

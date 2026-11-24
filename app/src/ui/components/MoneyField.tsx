@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { formatCents, parseMoneyToCents } from '@/domain/money';
 import { TextField, type TextFieldProps } from './TextField';
 
@@ -10,18 +10,15 @@ interface Props extends Omit<TextFieldProps, 'value' | 'onChangeText'> {
 
 /** Edits text freely, commits integer cents on blur. Shows "$64.99" when not focused. */
 export function MoneyField({ cents, onChangeCents, allowNegative, ...rest }: Props) {
-  const [text, setText] = useState(cents === null ? '' : (cents / 100).toFixed(2));
+  const [text, setText] = useState('');
   const [focused, setFocused] = useState(false);
-  useEffect(() => {
-    if (!focused) setText(cents === null ? '' : (cents / 100).toFixed(2));
-  }, [cents, focused]);
 
   return (
     <TextField
       keyboardType={allowNegative ? 'numbers-and-punctuation' : 'decimal-pad'}
       inputMode="decimal"
-      value={focused ? text : cents === null ? '' : formatCents(cents)}
-      onFocus={() => setFocused(true)}
+      value={focused ? text : (cents === null ? '' : formatCents(cents))}
+      onFocus={() => { setText(cents === null ? '' : (cents / 100).toFixed(2)); setFocused(true); }}
       onChangeText={setText}
       onBlur={() => {
         setFocused(false);

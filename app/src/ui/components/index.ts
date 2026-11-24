@@ -3,4 +3,8 @@ export { Button } from './Button';
 export { Card } from './Card';
 export { TextField } from './TextField';
 export { MoneyField } from './MoneyField';
+export { DateField } from './DateField';
+export { Sheet } from './Sheet';
+export { ToastProvider, useToast } from './Toast';
+export type { ToastTone } from './Toast';
 export { Screen, Chip, ListRow, Divider, EmptyState } from './misc';

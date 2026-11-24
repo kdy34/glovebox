@@ -1,8 +1,10 @@
 import type { ExpoConfig } from 'expo/config';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyExpoConfig = ExpoConfig & { splash?: any };
 
 // Only EXPO_PUBLIC_* values are embedded in the binary. They are public by design
 // (Supabase URL + anon key are protected by RLS). Never put secrets here (constitution IV).
-const config: ExpoConfig = {
+const config: AnyExpoConfig = {
   name: 'Glovebox',
   slug: 'glovebox',
   scheme: 'glovebox',

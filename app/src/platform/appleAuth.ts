@@ -34,7 +34,7 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
     const name = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(' ');
     if (name) {
       const { data } = await supabase.auth.getUser();
-      if (data.user) await supabase.from('profiles').update({ display_name: name.slice(0, 80) }).eq('id', data.user.id);
+      if (data.user) await (supabase.from('profiles') as any).update({ display_name: name.slice(0, 80) }).eq('id', data.user.id);
     }
     return { ok: true };
   } catch (e: unknown) {

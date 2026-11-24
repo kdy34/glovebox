@@ -58,7 +58,7 @@
 **App foundation**
 
 - [x] T016 [P] Build the design tokens (light/dark color, type scale, spacing, radius, AA-checked pairs) in `app/src/ui/theme.ts`.
-- [ ] T017 [P] (Partial: Text, Button, Card, TextField, MoneyField, Screen, Chip, ListRow, Divider and EmptyState are done; DateField, Sheet and Toast remain.) Build the core UI components in `app/src/ui/components/`: Button, Card, TextField, MoneyField, DateField, Chip, ListRow, EmptyState, Sheet, Toast and Screen. All need VoiceOver labels and Dynamic Type support.
+- [x] T017 [P] Build the core UI components in `app/src/ui/components/`: Button, Card, TextField, MoneyField, DateField, Chip, ListRow, EmptyState, Sheet, Toast and Screen. All need VoiceOver labels and Dynamic Type support.
 - [x] T018 [P] Set up i18n in `app/src/i18n/index.ts` and `app/src/i18n/en.json`.
 - [x] T019 Write the Supabase client with a SecureStore session adapter in `app/src/data/supabase.ts`, and generated types in `app/src/data/types.ts`.
 - [x] T020 [P] Write the remote config service with compiled defaults and caching in `app/src/services/config.ts`.
@@ -82,24 +82,24 @@
 - [x] T026 [P] [US1] Write unit tests in `app/__tests__/domain/money.test.ts`: cents parsing and formatting, line totals, discounts, subtotal + tax = total, mismatch detection.
 - [x] T027 [P] [US1] Write unit tests in `app/__tests__/domain/vin.test.ts`: format, check digit, the I/O/Q exclusions.
 - [x] T028 [P] [US1] Write unit tests in `app/__tests__/domain/odometer.test.ts`: rollback detection, exclusion, unit handling.
-- [ ] T029 [P] [US1] Write outbox tests in `app/__tests__/data/outbox.test.ts`: ordered flush, idempotent retry, no duplicates after a simulated network failure.
+- [x] T029 [P] [US1] Write outbox tests in `app/__tests__/data/outbox.test.ts`: ordered flush, idempotent retry, no duplicates after a simulated network failure.
 
 **Implementation**
 
 - [x] T030 [P] [US1] Implement `app/src/domain/money.ts`, `app/src/domain/vin.ts`, `app/src/domain/odometer.ts` and `app/src/domain/categories.ts`.
-- [ ] T031 [US1] Implement the SQLite outbox and sync triggers (reconnect, foreground) in `app/src/data/outbox.ts` and `app/src/data/sync.ts`.
-- [ ] T032 [P] [US1] Implement the repositories `app/src/data/repositories/vehicles.ts`, `records.ts` (via the `save_record` RPC) and `odometer.ts`, plus the query hooks in `app/src/data/queries.ts`.
-- [ ] T033 [P] [US1] Implement the NHTSA vPIC decoder service with a timeout and fallback in `app/src/services/vinDecoder.ts`.
-- [ ] T034 [US1] Build the Garage screen `app/app/(tabs)/index.tsx`: vehicle cards with photo, odometer and due chips; an empty state; an "Add vehicle" CTA.
-- [ ] T035 [US1] Build the add/edit vehicle screens `app/app/vehicle/new.tsx` and `app/app/vehicle/[id]/edit.tsx`: VIN entry and decode, manual year/make/model pickers, optional photo, archive and delete with confirmation.
-- [ ] T036 [US1] Build the vehicle detail screen `app/app/vehicle/[id]/index.tsx`: header, a timeline grouped by month, filters (service/expense), and a FAB with Scan / Manual / Odometer.
-- [ ] T037 [US1] Build the record form `app/app/record/new.tsx` and `app/app/record/[id].tsx`:
+- [x] T031 [US1] Implement the SQLite outbox and sync triggers (reconnect, foreground) in `app/src/data/outbox.ts` and `app/src/data/sync.ts`.
+- [x] T032 [P] [US1] Implement the repositories `app/src/data/repositories/vehicles.ts`, `records.ts` (via the `save_record` RPC) and `odometer.ts`, plus the query hooks in `app/src/data/queries.ts`.
+- [x] T033 [P] [US1] Implement the NHTSA vPIC decoder service with a timeout and fallback in `app/src/services/vinDecoder.ts`.
+- [x] T034 [US1] Build the Garage screen `app/app/(tabs)/index.tsx`: vehicle cards with photo, odometer and due chips; an empty state; an "Add vehicle" CTA.
+- [x] T035 [US1] Build the add/edit vehicle screens `app/app/vehicle/new.tsx` and `app/app/vehicle/[id]/edit.tsx`: VIN entry and decode, manual year/make/model pickers, optional photo, archive and delete with confirmation.
+- [x] T036 [US1] Build the vehicle detail screen `app/app/vehicle/[id]/index.tsx`: header, a timeline grouped by month, filters (service/expense), and a FAB with Scan / Manual / Odometer.
+- [x] T037 [US1] Build the record form `app/app/record/new.tsx` and `app/app/record/[id].tsx`:
   - kind and category, date, odometer, shop or DIY toggle
   - line-items editor, tax, auto-computed total
   - attachments, notes
   - edit and delete
-- [ ] T038 [P] [US1] Build the odometer entry screen `app/app/odometer/new.tsx`, with a rollback warning and override.
-- [ ] T039 [US1] Wire the offline indicator and sync status toast in `app/src/features/sync/SyncBanner.tsx`.
+- [x] T038 [P] [US1] Build the odometer entry screen `app/app/odometer/new.tsx`, with a rollback warning and override.
+- [x] T039 [US1] Wire the offline indicator and sync status toast in `app/src/features/sync/SyncBanner.tsx`.
 
 **Checkpoint**: US1 is independently demoable. This is the MVP.
 
