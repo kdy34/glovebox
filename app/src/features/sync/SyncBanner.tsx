@@ -2,7 +2,7 @@
 // Rendered at the top of the signed-in stack, non-blocking. The "couldn't sync" state stays
 // until the user reviews it: tap to expand, then Retry or Discard each change.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import { Alert, Animated, Pressable, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -64,6 +64,13 @@ export function SyncBanner() {
     };
   }, [refresh]);
 
+  const confirmDiscard = (e: OutboxEntry) => {
+    Alert.alert(tr('sync.discardTitle'), tr('sync.discardBody', { change: describe(e, tr) }), [
+      { text: tr('common.cancel'), style: 'cancel' },
+      { text: tr('sync.discard'), style: 'destructive', onPress: () => void outbox.discard(e.id) },
+    ]);
+  };
+
   const state: SyncState = offline
     ? 'offline'
     : dead.length > 0
@@ -119,7 +126,7 @@ export function SyncBanner() {
                     {describe(e, tr)}
                   </Text>
                   <Button title={tr('sync.retry')} variant="secondary" onPress={() => void retryDead(e.id)} />
-                  <Button title={tr('sync.discard')} variant="ghost" onPress={() => void outbox.discard(e.id)} />
+                  <Button title={tr('sync.discard')} variant="ghost" onPress={() => confirmDiscard(e)} />
                 </View>
               ))}
             </View>

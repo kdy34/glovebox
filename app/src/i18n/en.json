@@ -148,7 +148,9 @@
     "retry": "Retry",
     "discard": "Discard",
     "changeRecord": "Record: {{title}}",
-    "changeTable": "Change to {{table}}"
+    "changeTable": "Change to {{table}}",
+    "discardTitle": "Discard this change?",
+    "discardBody": "{{change}} will be removed from this phone and won't be saved. This can't be undone."
   },
   "legal": {
     "privacy": "Privacy Policy",

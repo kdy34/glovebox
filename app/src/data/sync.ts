@@ -5,6 +5,7 @@ import { AppState } from 'react-native';
 import { supabase } from './supabase';
 import { createOutbox, createSupabaseExecutor, type NewOutboxEntry, type SupabaseLike } from './outbox';
 import { sqliteOutboxStore, initOutboxDb } from './outbox.sqlite';
+import { captureError } from '@/services/sentry';
 
 const outbox = createOutbox(sqliteOutboxStore);
 const execute = createSupabaseExecutor(supabase as unknown as SupabaseLike);
@@ -45,8 +46,9 @@ export async function tryFlush(): Promise<void> {
       const result = await outbox.flush(execute);
       scheduleRetry(result.nextAttemptAt);
     } while (flushAgain);
-  } catch {
-    // Store errors are logged by Sentry; the next trigger retries.
+  } catch (err) {
+    // Local store error (send failures are handled inside flush). The next trigger retries.
+    captureError(err);
   } finally {
     flushing = false;
   }
