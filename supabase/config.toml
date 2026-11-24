@@ -43,8 +43,20 @@ file_size_limit = "10MiB"
 enabled = true
 policy = "per_worker"
 
+# All functions share supabase/functions/deno.json (import map + test task).
+[functions.delete-account]
+import_map = "./functions/deno.json"
+
+[functions.export-data]
+import_map = "./functions/deno.json"
+
+[functions.extract-receipt]
+import_map = "./functions/deno.json"
+
 [functions.public-report]
 verify_jwt = false
+import_map = "./functions/deno.json"
 
 [functions.revenuecat-webhook]
 verify_jwt = false
+import_map = "./functions/deno.json"

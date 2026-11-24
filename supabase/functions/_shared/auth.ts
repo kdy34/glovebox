@@ -1,7 +1,7 @@
 // Clients for Edge Functions.
 //  - userClient: acts as the caller (RLS applies) — preferred whenever possible.
 //  - adminClient: service role — only for server-written tables and storage cleanup.
-import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { HttpError } from './errors.ts';
 
 const url = () => Deno.env.get('SUPABASE_URL')!;

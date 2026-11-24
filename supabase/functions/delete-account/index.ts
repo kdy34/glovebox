@@ -1,9 +1,4 @@
-// Stub — implemented in Phase 4 (T042)
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// delete-account Edge Function entry point. Logic lives in handler.ts (testable).
+import { createHandler } from './handler.ts';
 
-serve((_req) => {
-  return new Response(JSON.stringify({ error: "not_implemented" }), {
-    status: 501,
-    headers: { "Content-Type": "application/json" },
-  });
-});
+Deno.serve(createHandler());

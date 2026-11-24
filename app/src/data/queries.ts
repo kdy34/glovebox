@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { listVehicles, getVehicle, saveVehicle, archiveVehicle, unarchiveVehicle, deleteVehicle, type VehicleInput } from './repositories/vehicles';
 import { listRecords, getRecord, getLineItems, saveRecord, deleteRecord, type SaveRecordArgs } from './repositories/records';
+import { getProfile, hasActiveSubscription, updateProfile, type ProfileRow } from './repositories/profile';
+import type { ProfileFields } from './writes';
 import { listOdometerReadings, saveOdometerReading, excludeOdometerReading, type OdometerInput } from './repositories/odometer';
 
 // ─── Vehicles ──────────────────────────────────────────────────────────────
@@ -132,5 +134,34 @@ export function useExcludeOdometerReading() {
     onSuccess: (_, args) => {
       void qc.invalidateQueries({ queryKey: qk.odometer(args.vehicleId) });
     },
+  });
+}
+
+// ─── Profile (T044) ────────────────────────────────────────────────────────
+
+export function useProfile(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['profile', userId],
+    queryFn: () => getProfile(userId!),
+    enabled: !!userId,
+  });
+}
+
+/** Optimistic: the change is queued in the outbox and shown right away. */
+export function useUpdateProfile(userId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (fields: ProfileFields) => updateProfile(userId!, fields),
+    onMutate: (fields) => {
+      qc.setQueryData<ProfileRow | null>(['profile', userId], (p) => (p ? { ...p, ...fields } : p));
+    },
+  });
+}
+
+export function useHasSubscription(userId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['entitlement', userId],
+    queryFn: () => hasActiveSubscription(userId!),
+    enabled: !!userId && enabled,
   });
 }

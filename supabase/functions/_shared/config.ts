@@ -1,5 +1,5 @@
 // Server-side view of app_config (contracts/app-config.md), with safe defaults.
-import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface AiConfig {
   enabled: boolean;

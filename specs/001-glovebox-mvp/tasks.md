@@ -109,17 +109,19 @@
 
 **Goal**: In-app export and account deletion (App Store requirement).
 
-- [ ] T040 [P] [US6] Write Deno tests in `supabase/functions/delete-account/index.test.ts`: confirmation required, storage purged, user deleted, other users untouched.
-- [ ] T041 [P] [US6] Write Deno tests in `supabase/functions/export-data/index.test.ts`: the ZIP contains JSON, CSV and files only for the caller.
-- [ ] T042 [US6] Implement `supabase/functions/delete-account/index.ts` per contracts/edge-functions.md, including the Apple token revoke (best effort).
-- [ ] T043 [US6] Implement `supabase/functions/export-data/index.ts` with JSZip and signed URLs, plus a 24 h cleanup of the `exports` bucket.
-- [ ] T044 [US6] Build the Settings screen `app/app/(tabs)/settings.tsx`:
+- [x] T040 [P] [US6] Write Deno tests in `supabase/functions/delete-account/index.test.ts`: confirmation required, storage purged, user deleted, other users untouched.
+- [x] T041 [P] [US6] Write Deno tests in `supabase/functions/export-data/index.test.ts`: the ZIP contains JSON, CSV and files only for the caller.
+- [x] T042 [US6] Implement `supabase/functions/delete-account/index.ts` per contracts/edge-functions.md, including the Apple token revoke (best effort).
+- [x] T043 [US6] Implement `supabase/functions/export-data/index.ts` with JSZip and signed URLs, plus a 24 h cleanup of the `exports` bucket.
+- [x] T044 [US6] Build the Settings screen `app/app/(tabs)/settings.tsx`:
   - profile and units, notification lead time
   - Export my data, Delete account (double confirm, subscription-cancel guidance)
   - support email, legal links, app version
-- [ ] T045 [P] [US6] Implement the account service (export download + share sheet, delete + sign-out + local wipe) in `app/src/services/account.ts`.
+- [x] T045 [P] [US6] Implement the account service (export download + share sheet, delete + sign-out + local wipe) in `app/src/services/account.ts`.
 
 **Checkpoint**: US6 passes quickstart §2 row US6.
+
+> Done 2026-11-24. Function logic lives in `handler.ts` (a `createHandler(deps)` factory) and `index.ts` only calls `Deno.serve`. Run the Deno tests against local Supabase with `supabase/functions/test-local.sh`. Export ZIPs are built in memory, so very large exports hit Edge Function memory limits well below 500 MB; `data_only` is the fallback. Not yet run: the quickstart US6 row on a device.
 
 ---
 

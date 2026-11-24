@@ -42,3 +42,18 @@ export async function signInWithApple(): Promise<AppleSignInResult> {
     return { ok: false, cancelled: code === 'ERR_REQUEST_CANCELED' };
   }
 }
+
+/**
+ * Re-authenticates with Apple to get a fresh one-time authorization code, which the
+ * delete-account function exchanges and revokes (App Store guideline 5.1.1(v)).
+ * Returns null when cancelled or unavailable; deletion goes ahead without it.
+ */
+export async function getAppleAuthorizationCode(): Promise<string | null> {
+  if (!(await isAppleSignInAvailable())) return null;
+  try {
+    const credential = await AppleAuthentication.signInAsync({ requestedScopes: [] });
+    return credential.authorizationCode ?? null;
+  } catch {
+    return null;
+  }
+}

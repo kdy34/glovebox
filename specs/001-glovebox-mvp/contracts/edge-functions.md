@@ -71,14 +71,14 @@ The file must already be uploaded to `receipts/{uid}/{attachment_id}.*`, and the
 
 Builds a ZIP of everything the user owns.
 
-**Request**: `{}`
+**Request**: `{}`, or `{ "data_only": true }` for a JSON/CSV-only export without files.
 
-**Processing**: the function uses the caller's JWT to select all of the caller's rows. A service-role key is not needed for reading, because RLS already scopes the results. It then builds a ZIP containing:
+**Processing**: the function uses the caller's JWT to select all of the caller's rows and download their files. A service-role key is not needed for reading, because RLS already scopes the results. The service role is used only to store the ZIP (users can't write to `exports`) and to sign its URL. The ZIP contains, all under one `glovebox-export/` folder:
 - `glovebox-export/data.json`: every table
-- `csv/*.csv`: vehicles, records, line_items, odometer, rules
-- `files/…`: the attachments and vehicle photos
+- `glovebox-export/csv/*.csv`: vehicles, records, line_items, odometer, rules (RFC 4180)
+- `glovebox-export/files/receipts/…` and `glovebox-export/files/vehicle-photos/…`: the attachments and vehicle photos
 
-The ZIP is uploaded to `exports/{uid}/{timestamp}.zip`, a private bucket where objects expire after 24 h through a cleanup job.
+The ZIP is uploaded to `exports/{uid}/{timestamp}.zip`, a private bucket where objects expire after 24 h. Each export call removes the caller's expired exports; the nightly sweep (T095) cleans the whole bucket.
 
 **200 Response**:
 ```json
@@ -86,7 +86,7 @@ The ZIP is uploaded to `exports/{uid}/{timestamp}.zip`, a private bucket where o
 ```
 
 **Errors**:
-- `413 export_too_large`: over 500 MB. The response then offers a JSON-only export.
+- `413 export_too_large`: the files total over 500 MB. The error body includes `"data_only_available": true`; the app then offers a `data_only` export.
 
 ---
 
@@ -94,12 +94,14 @@ The ZIP is uploaded to `exports/{uid}/{timestamp}.zip`, a private bucket where o
 
 Permanently deletes the caller's account and data.
 
-**Request**: `{ "confirm": "DELETE" }`
+**Request**: `{ "confirm": "DELETE", "apple_authorization_code"?: "…" }`
+
+`apple_authorization_code` is optional. Apple users get it from a fresh Sign in with Apple prompt just before deleting. Supabase doesn't keep Apple's refresh token, so the server needs this code to revoke the token.
 
 **Processing (service role)**:
 1. List and remove all objects under `{uid}/` in `receipts`, `vehicle-photos` and `exports`.
 2. Revoke all share links. This happens anyway when the rows cascade.
-3. If the user signed in with Apple, revoke the Apple token (best effort).
+3. If the user signed in with Apple and sent an authorization code, exchange it and revoke the refresh token (best effort; needs `APPLE_CLIENT_ID` and `APPLE_CLIENT_SECRET`). A failure here never blocks deletion.
 4. Call `auth.admin.deleteUser(uid)`. All rows cascade-delete.
 5. Write an anonymized audit log line: no user id, just a count and a timestamp.
 
@@ -107,7 +109,7 @@ Permanently deletes the caller's account and data.
 
 **Errors**:
 - `400 confirmation_required`
-- `500 partial_failure`: the step that failed is retried by a nightly reconciliation that sweeps storage orphans.
+- `500 partial_failure`: a cleanup step failed. The auth user is still deleted, so the app treats this as deleted. The nightly sweep (T095) removes any storage orphans.
 
 ---
 

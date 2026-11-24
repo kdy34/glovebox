@@ -30,8 +30,8 @@ supabase start && supabase db reset      # migrations + seed
 ./supabase/tests/run.sh                  # SQL tests (RLS, constraints, quota, save_record)
 supabase gen types typescript --local > app/src/data/types.ts
 
-# functions
-cd supabase/functions && deno task test
+# functions (against local Supabase: supabase start)
+./supabase/functions/test-local.sh       # exports SUPABASE_* from `supabase status`, runs deno task test
 ```
 
 ## Rules
@@ -50,5 +50,5 @@ cd supabase/functions && deno task test
 ## Status
 
 - Progress lives in `specs/001-glovebox-mvp/tasks.md`, the source of truth.
-- Last checkpoint: Phase 2 (Foundational) + Phase 3 / US1 complete (T017, T029, T031–T039).
-- **Next:** Phase 4 / US6 (account & data control, T040–T045), required before TestFlight.
+- Last checkpoint: US1 + converge T096–T100 + Phase 4 / US6 (T040–T045) complete.
+- **Next:** Phase 5 / US2 (T046–T058).
