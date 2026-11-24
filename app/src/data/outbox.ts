@@ -8,6 +8,8 @@
 //   - a failed entry stays pending: attempts++, next_attempt_at = now + base·2^(attempts-1)
 //   - after maxAttempts failures it becomes 'dead' — kept for the user to review, never dropped
 //   - dead entries no longer block the queue
+//   - entries belong to the signed-in user (T100): nothing is sent while signed out, and
+//     another user's entries are never sent, counted or merged into
 //   - a server rejection (non-transient SQLSTATE, e.g. 23502) goes dead at once (T099)
 //
 // Partial changes use 'update' (T099): PostgREST upsert is INSERT ... ON CONFLICT, and
@@ -33,6 +35,7 @@ export interface OutboxEntry {
   attempts: number;
   next_attempt_at: number; // ms epoch; 0 = due now
   last_error: string | null;
+  user_id: string | null; // owner; null only for rows written before T100
   rev: number; // bumped on every enqueue; guards against marking an unsent edit as synced
 }
 
@@ -45,7 +48,9 @@ export interface OutboxStore {
   put(entry: OutboxEntry): Promise<void>;
   remove(id: string): Promise<void>;
   /** Entries with the given status, sorted by created_at ascending. */
-  list(status: OutboxStatus): Promise<OutboxEntry[]>;
+  list(status: OutboxStatus, userId?: string): Promise<OutboxEntry[]>;
+  removeUser(userId: string): Promise<void>;
+  claimUnowned(userId: string): Promise<void>;
 }
 
 /** Sends one entry. Must throw on failure. */
@@ -61,6 +66,7 @@ export interface FlushResult {
 
 export interface OutboxOptions {
   now?: () => number;
+  userId?: string | null;
   maxAttempts?: number;
   baseDelayMs?: number;
   maxDelayMs?: number;
@@ -75,6 +81,10 @@ export interface Outbox {
   retry(id: string): Promise<void>;
   /** Permanently discard a dead entry. User-initiated only. */
   discard(id: string): Promise<void>;
+  /** Who is signed in. Only their entries are enqueued, counted and sent (T100). */
+  setUser(userId: string | null): void;
+  /** Remove every entry (any status) of a user — after account deletion. */
+  purgeUser(userId: string): Promise<void>;
   /** Called after every change to the queue. Returns an unsubscribe function. */
   subscribe(listener: () => void): () => void;
 }
@@ -136,14 +146,25 @@ export function createOutbox(store: OutboxStore, opts: OutboxOptions = {}): Outb
   const maxAttempts = opts.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
   const baseDelay = opts.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
   const maxDelay = opts.maxDelayMs ?? DEFAULT_MAX_DELAY_MS;
+  let userId: string | null = opts.userId ?? null;
+  // Rows written before T100 have no owner; the first signed-in user claims them.
+  let claimed: Promise<void> = userId ? store.claimUnowned(userId) : Promise.resolve();
   const listeners = new Set<() => void>();
+  const ready = async () => {
+    await claimed;
+    return userId;
+  };
+  const own = (e: OutboxEntry | null, uid: string | null): e is OutboxEntry => !!e && !!uid && e.user_id === uid;
   const notify = () => listeners.forEach((l) => l());
 
   const backoff = (attempts: number) => Math.min(baseDelay * 2 ** (attempts - 1), maxDelay);
 
   return {
     async enqueue(input) {
-      const existing = await store.get(input.id);
+      const uid = await ready();
+      if (!uid) throw new Error('Outbox: nobody is signed in');
+      const found = await store.get(input.id);
+      const existing = own(found, uid) ? found : null;
       const keepPosition = existing?.status === 'pending';
       const next = combine(existing, input);
       await store.put({
@@ -156,15 +177,18 @@ export function createOutbox(store: OutboxStore, opts: OutboxOptions = {}): Outb
         attempts: 0,
         next_attempt_at: 0,
         last_error: null,
-        rev: (existing?.rev ?? 0) + 1,
+        user_id: uid,
+        rev: (found?.rev ?? 0) + 1,
       });
       notify();
     },
 
     async flush(execute) {
       const result: FlushResult = { synced: [], failed: null, nextAttemptAt: null };
+      const uid = await ready();
+      if (!uid) return result;
       try {
-        const pending = await store.list('pending');
+        const pending = await store.list('pending', uid);
         for (const entry of pending) {
           if (entry.next_attempt_at > now()) {
             result.nextAttemptAt = entry.next_attempt_at;
@@ -199,7 +223,7 @@ export function createOutbox(store: OutboxStore, opts: OutboxOptions = {}): Outb
         }
         // A dead head or an edit-in-flight leaves more work behind it.
         if (result.nextAttemptAt === null && (result.failed?.dead || result.synced.length < pending.length)) {
-          const rest = await store.list('pending');
+          const rest = await store.list('pending', uid);
           if (rest.length > 0) result.nextAttemptAt = Math.max(now(), rest[0]!.next_attempt_at);
         }
         return result;
@@ -209,24 +233,41 @@ export function createOutbox(store: OutboxStore, opts: OutboxOptions = {}): Outb
     },
 
     async getPendingCount() {
-      return (await store.list('pending')).length;
+      const uid = await ready();
+      return uid ? (await store.list('pending', uid)).length : 0;
     },
 
     async getDead() {
-      return store.list('dead');
+      const uid = await ready();
+      return uid ? store.list('dead', uid) : [];
     },
 
     async retry(id) {
+      const uid = await ready();
       const e = await store.get(id);
-      if (!e || e.status !== 'dead') return;
+      if (!own(e, uid) || e.status !== 'dead') return;
       await store.put({ ...e, status: 'pending', attempts: 0, next_attempt_at: 0 });
       notify();
     },
 
     async discard(id) {
+      const uid = await ready();
       const e = await store.get(id);
-      if (!e || e.status !== 'dead') return;
+      if (!own(e, uid) || e.status !== 'dead') return;
       await store.remove(id);
+      notify();
+    },
+
+    setUser(next) {
+      if (next === userId) return;
+      userId = next;
+      claimed = next ? claimed.then(() => store.claimUnowned(next)) : claimed;
+      notify();
+    },
+
+    async purgeUser(target) {
+      await claimed;
+      await store.removeUser(target);
       notify();
     },
 

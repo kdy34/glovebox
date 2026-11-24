@@ -2,6 +2,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { identify, resetAnalytics } from '@/services/analytics';
+import { queryClient } from './queryClient';
 import { supabase } from './supabase';
 
 interface AuthState {
@@ -21,7 +22,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      // Query keys aren't user-scoped: never show one user's cached data to the next (T100).
+      if (event === 'SIGNED_OUT') queryClient.clear();
       setSession(s);
       if (s?.user) identify(s.user.id);
     });
@@ -30,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    queryClient.clear();
     resetAnalytics();
   };
 

@@ -1,6 +1,6 @@
 // Root layout: providers + auth-gated navigation (T022).
 import '@/i18n';
-import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
+import { QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
 import NetInfo from '@react-native-community/netinfo';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -10,7 +10,8 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/data/auth';
-import { initSync } from '@/data/sync';
+import { queryClient } from '@/data/queryClient';
+import { initSync, setSyncUser } from '@/data/sync';
 import { SyncBanner } from '@/features/sync/SyncBanner';
 import { initAnalytics } from '@/services/analytics';
 import { initSentry, wrapRoot } from '@/services/sentry';
@@ -20,9 +21,6 @@ initSentry();
 initAnalytics();
 void SplashScreen.preventAutoHideAsync();
 
-const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 2, staleTime: 30_000 }, mutations: { retry: 0 } },
-});
 
 // Refetch on foreground and pause queries while offline.
 onlineManager.setEventListener((setOnline) => NetInfo.addEventListener((s) => setOnline(!!s.isConnected)));
@@ -39,10 +37,13 @@ function RootNavigator() {
   }, [loading]);
 
   const signedIn = !!session;
-  // Start the outbox flusher once a session exists (RLS needs the user's JWT).
+  const userId = session?.user.id ?? null;
+  // Start the outbox flusher once a session exists (RLS needs the user's JWT), and keep
+  // the outbox pointed at whoever is signed in (T100).
   useEffect(() => {
-    if (signedIn) initSync();
-  }, [signedIn]);
+    if (userId) initSync();
+    setSyncUser(userId);
+  }, [userId]);
 
   if (loading) return null;
 

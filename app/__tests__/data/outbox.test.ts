@@ -36,11 +36,22 @@ function makeMemoryStore(): OutboxStore & { _entries: Map<string, OutboxEntry> }
     async remove(id) {
       _entries.delete(id);
     },
-    async list(status) {
-      return [..._entries.values()].filter((e) => e.status === status).sort((a, b) => a.created_at - b.created_at);
+    async list(status, userId) {
+      return [..._entries.values()]
+        .filter((e) => e.status === status && (userId === undefined || e.user_id === userId))
+        .sort((a, b) => a.created_at - b.created_at);
+    },
+    async removeUser(userId) {
+      for (const [id, e] of _entries) if (e.user_id === userId) _entries.delete(id);
+    },
+    async claimUnowned(userId) {
+      for (const [id, e] of _entries) if (!e.user_id) _entries.set(id, { ...e, user_id: userId });
     },
   };
 }
+
+const USER_A = 'aaaaaaaa-0000-4000-8000-00000000000a';
+const USER_B = 'bbbbbbbb-0000-4000-8000-00000000000b';
 
 // Controllable clock so ordering and backoff are deterministic.
 function makeClock(start = 1_000_000) {
@@ -235,7 +246,7 @@ describe('T029 outbox — ordered flush', () => {
   });
 
   it('flushes entries in creation order', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue(upsert('a'));
     clock.tick();
     await outbox.enqueue(upsert('b'));
@@ -251,7 +262,7 @@ describe('T029 outbox — ordered flush', () => {
   });
 
   it('marks entries as synced after a successful flush', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue(upsert('x'));
     await outbox.flush(async () => {});
     assert.equal(store._entries.get('x')?.status, 'synced');
@@ -269,7 +280,7 @@ describe('T029 outbox — idempotent retry, no duplicates', () => {
   });
 
   it('re-enqueueing the same id keeps a single entry', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue(upsert('dup', 'service_records'));
     await outbox.flush(async () => {});
     await outbox.enqueue(upsert('dup', 'service_records'));
@@ -280,7 +291,7 @@ describe('T029 outbox — idempotent retry, no duplicates', () => {
   });
 
   it('does not re-send an entry that synced when a later entry failed', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue(upsert('e1'));
     clock.tick();
     await outbox.enqueue(upsert('e2'));
@@ -306,7 +317,7 @@ describe('T029 outbox — idempotent retry, no duplicates', () => {
   });
 
   it('does not re-flush already-synced entries', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue(upsert('done'));
     await outbox.flush(async () => {});
 
@@ -328,7 +339,7 @@ describe('T096 saveRecord offline queues a single save_record rpc entry', () => 
   beforeEach(() => {
     store = makeMemoryStore();
     clock = makeClock();
-    outbox = createOutbox(store, { now: clock.now });
+    outbox = createOutbox(store, { userId: USER_A, now: clock.now });
   });
 
   it('enqueues exactly one rpc entry keyed by the record id with {fn, args:{p_record, p_items}}', async () => {
@@ -417,7 +428,7 @@ describe('T097 saveRecord queues only on network failure', () => {
 
   beforeEach(() => {
     store = makeMemoryStore();
-    outbox = createOutbox(store, { now: makeClock().now });
+    outbox = createOutbox(store, { userId: USER_A, now: makeClock().now });
   });
 
   it('online success returns server data and queues nothing', async () => {
@@ -480,7 +491,7 @@ describe('T098 outbox — failed entries are retried, not lost', () => {
   };
 
   it('a transient failure is retried after backoff and not lost', async () => {
-    const outbox = createOutbox(store, { now: clock.now, baseDelayMs: 2000 });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now, baseDelayMs: 2000 });
     await outbox.enqueue(upsert('t1'));
 
     const r1 = await outbox.flush(failing);
@@ -508,7 +519,7 @@ describe('T098 outbox — failed entries are retried, not lost', () => {
   });
 
   it('backoff is exponential', async () => {
-    const outbox = createOutbox(store, { now: clock.now, baseDelayMs: 1000 });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now, baseDelayMs: 1000 });
     await outbox.enqueue(upsert('x'));
     const delays: number[] = [];
     for (let i = 0; i < 4; i++) {
@@ -521,7 +532,7 @@ describe('T098 outbox — failed entries are retried, not lost', () => {
   });
 
   it('after 5 failed attempts the entry becomes dead, is kept, and stops blocking the queue', async () => {
-    const outbox = createOutbox(store, { now: clock.now, maxAttempts: 5 });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now, maxAttempts: 5 });
     await outbox.enqueue(upsert('bad'));
     clock.tick();
     await outbox.enqueue(upsert('next'));
@@ -554,7 +565,7 @@ describe('T098 outbox — failed entries are retried, not lost', () => {
   });
 
   it('stops the flush at the first failure so order is preserved', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue(upsert('a'));
     clock.tick();
     await outbox.enqueue(upsert('b'));
@@ -573,7 +584,7 @@ describe('T098 outbox — failed entries are retried, not lost', () => {
   });
 
   it('a dead entry can be retried from review', async () => {
-    const outbox = createOutbox(store, { now: clock.now, maxAttempts: 1 });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now, maxAttempts: 1 });
     await outbox.enqueue(upsert('d'));
     await outbox.flush(failing);
     assert.equal(store._entries.get('d')?.status, 'dead');
@@ -586,7 +597,7 @@ describe('T098 outbox — failed entries are retried, not lost', () => {
   });
 
   it('an edit enqueued while its previous version is in flight is not marked synced unsent', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue({ id: 'r', table: 'vehicles', operation: 'upsert', payload: { v: 1 } });
 
     const sent: unknown[] = [];
@@ -605,7 +616,7 @@ describe('T098 outbox — failed entries are retried, not lost', () => {
   });
 
   it('notifies subscribers when the queue changes', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     let n = 0;
     const unsub = outbox.subscribe(() => {
       n++;
@@ -653,7 +664,7 @@ describe('T099 partial changes are sent as update, not upsert', () => {
   beforeEach(() => {
     store = makeMemoryStore();
     clock = makeClock();
-    outbox = createOutbox(store, { now: clock.now });
+    outbox = createOutbox(store, { userId: USER_A, now: clock.now });
   });
 
   it('archiveVehicle syncs as an update and keeps the other columns', async () => {
@@ -775,7 +786,7 @@ describe('T099 server rejections go dead immediately', () => {
   });
 
   it('a partial upsert rejected with 23502 is marked dead after one attempt', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     const server = makeFakeSupabase();
     await outbox.enqueue({ id: 'v', table: 'vehicles', operation: 'upsert', payload: { id: 'v', status: 'archived' } });
     await outbox.flush(createSupabaseExecutor(server.client));
@@ -787,7 +798,7 @@ describe('T099 server rejections go dead immediately', () => {
 
   for (const code of ['23502', '23514', '22023', '42501', '23503']) {
     it(`an executor error with SQLSTATE ${code} is not retried`, async () => {
-      const outbox = createOutbox(store, { now: clock.now });
+      const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
       await outbox.enqueue(upsert('x'));
       const res = await outbox.flush(async () => {
         throw Object.assign(new Error('rejected'), { code });
@@ -798,7 +809,7 @@ describe('T099 server rejections go dead immediately', () => {
   }
 
   it('the queue moves on right after a rejected entry', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue(upsert('bad'));
     clock.tick();
     await outbox.enqueue(upsert('good'));
@@ -816,7 +827,7 @@ describe('T099 server rejections go dead immediately', () => {
 
   for (const code of ['40001', '40P01', '57014', '08006', '53300']) {
     it(`a transient SQLSTATE ${code} (serialization/timeout/connection/resources) is still retried`, async () => {
-      const outbox = createOutbox(store, { now: clock.now });
+      const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
       await outbox.enqueue(upsert('t'));
       await outbox.flush(async () => {
         throw Object.assign(new Error('try again'), { code });
@@ -828,11 +839,156 @@ describe('T099 server rejections go dead immediately', () => {
   }
 
   it('a network error without a code is still retried', async () => {
-    const outbox = createOutbox(store, { now: clock.now });
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
     await outbox.enqueue(upsert('n'));
     await outbox.flush(async () => {
       throw new Error('TypeError: Network request failed');
     });
     assert.equal(store._entries.get('n')?.status, 'pending');
+  });
+});
+
+// ═══ T100 — the outbox belongs to the signed-in user ═══════════════════════
+
+describe('T100 outbox is scoped to the signed-in user', () => {
+  let store: ReturnType<typeof makeMemoryStore>;
+  let clock: ReturnType<typeof makeClock>;
+
+  beforeEach(() => {
+    store = makeMemoryStore();
+    clock = makeClock();
+  });
+
+  it('tags each entry with the current user', async () => {
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
+    await outbox.enqueue(upsert('v1'));
+    assert.equal(store._entries.get('v1')?.user_id, USER_A);
+  });
+
+  it('rejects enqueue when nobody is signed in', async () => {
+    const outbox = createOutbox(store, { now: clock.now });
+    await assert.rejects(outbox.enqueue(upsert('v1')), /signed in/i);
+    assert.equal(store._entries.size, 0);
+  });
+
+  it('sends nothing while signed out (no anon writes, nothing marked synced)', async () => {
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
+    await outbox.enqueue(upsert('v1'));
+    outbox.setUser(null);
+    let calls = 0;
+    const res = await outbox.flush(async () => {
+      calls++;
+    });
+    assert.equal(calls, 0);
+    assert.equal(res.nextAttemptAt, null);
+    assert.equal(store._entries.get('v1')?.status, 'pending');
+  });
+
+  it("sends only the current user's entries", async () => {
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
+    await outbox.enqueue(upsert('a1'));
+    clock.tick();
+    outbox.setUser(USER_B);
+    await outbox.enqueue(upsert('b1'));
+    clock.tick();
+
+    const sent: string[] = [];
+    await outbox.flush(async (e) => {
+      sent.push(e.id);
+    });
+    assert.deepEqual(sent, ['b1']);
+    assert.equal(store._entries.get('a1')?.status, 'pending', "A's change waits for A");
+
+    outbox.setUser(USER_A);
+    await outbox.flush(async (e) => {
+      sent.push(e.id);
+    });
+    assert.deepEqual(sent, ['b1', 'a1']);
+  });
+
+  it('scopes the pending count and the dead list', async () => {
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now, maxAttempts: 1 });
+    await outbox.enqueue(upsert('a-dead'));
+    await outbox.flush(async () => {
+      throw new Error('x');
+    });
+    await outbox.enqueue(upsert('a-pending'));
+    outbox.setUser(USER_B);
+    assert.equal(await outbox.getPendingCount(), 0);
+    assert.deepEqual(await outbox.getDead(), []);
+    outbox.setUser(USER_A);
+    assert.equal(await outbox.getPendingCount(), 1);
+    assert.deepEqual(
+      (await outbox.getDead()).map((e) => e.id),
+      ['a-dead'],
+    );
+  });
+
+  it("can't retry or discard another user's dead entry", async () => {
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now, maxAttempts: 1 });
+    await outbox.enqueue(upsert('a-dead'));
+    await outbox.flush(async () => {
+      throw new Error('x');
+    });
+    outbox.setUser(USER_B);
+    await outbox.retry('a-dead');
+    await outbox.discard('a-dead');
+    assert.equal(store._entries.get('a-dead')?.status, 'dead');
+  });
+
+  it("does not merge into another user's pending entry with the same id", async () => {
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now });
+    await outbox.enqueue({ id: 'x', table: 'vehicles', operation: 'upsert', payload: { id: 'x', make: 'A' } });
+    outbox.setUser(USER_B);
+    await outbox.enqueue({ id: 'x', table: 'vehicles', operation: 'update', payload: { status: 'archived' } });
+    const e = store._entries.get('x')!;
+    assert.equal(e.user_id, USER_B);
+    assert.equal(e.operation, 'update');
+    assert.deepEqual(e.payload, { status: 'archived' });
+  });
+
+  it("purgeUser removes every entry of that user (pending, dead, synced) and nobody else's", async () => {
+    const outbox = createOutbox(store, { userId: USER_A, now: clock.now, maxAttempts: 1 });
+    await outbox.enqueue(upsert('a-synced'));
+    await outbox.flush(async () => {});
+    await outbox.enqueue(upsert('a-dead'));
+    await outbox.flush(async () => {
+      throw new Error('x');
+    });
+    await outbox.enqueue(upsert('a-pending'));
+    outbox.setUser(USER_B);
+    await outbox.enqueue(upsert('b-pending'));
+
+    let notified = 0;
+    outbox.subscribe(() => {
+      notified++;
+    });
+    await outbox.purgeUser(USER_A);
+    assert.deepEqual([...store._entries.keys()], ['b-pending']);
+    assert.ok(notified > 0);
+  });
+
+  it('setUser claims entries written before entries had an owner', async () => {
+    const outbox = createOutbox(store, { now: clock.now });
+    await store.put({
+      id: 'legacy',
+      table: 'vehicles',
+      operation: 'upsert',
+      payload: { id: 'legacy' },
+      created_at: 1,
+      status: 'pending',
+      attempts: 0,
+      next_attempt_at: 0,
+      last_error: null,
+      rev: 1,
+      user_id: null,
+    });
+    outbox.setUser(USER_A);
+    const sent: string[] = [];
+    await outbox.flush(async (e) => {
+      sent.push(e.id);
+    });
+    assert.deepEqual(sent, ['legacy']);
+    assert.equal(store._entries.get('legacy')?.user_id, USER_A);
   });
 });

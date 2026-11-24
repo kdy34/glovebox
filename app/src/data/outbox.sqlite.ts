@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import type { OutboxEntry, OutboxStatus, OutboxStore } from './outbox';
 
 const DB_NAME = 'glovebox_outbox.db';
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 let _db: SQLite.SQLiteDatabase | null = null;
 
@@ -27,9 +27,11 @@ const CREATE_CURRENT = `
     attempts INTEGER NOT NULL DEFAULT 0,
     next_attempt_at INTEGER NOT NULL DEFAULT 0,
     last_error TEXT,
-    rev INTEGER NOT NULL DEFAULT 1
+    rev INTEGER NOT NULL DEFAULT 1,
+    user_id TEXT
   );
   CREATE INDEX outbox_status_created ON outbox(status, created_at);
+  CREATE INDEX outbox_user_status_created ON outbox(user_id, status, created_at);
 `;
 
 // Copies rows from the renamed old table into the current schema.
@@ -41,8 +43,9 @@ const COPY_FROM_V1 = `
          0, 0, NULL, 1
     FROM outbox_old;
 `;
-// v2 only lacks 'update' in the operation CHECK (T099); rows copy as they are.
-const COPY_FROM_V2 = `
+// v2/v3 lack 'update' in the operation CHECK (T099) and user_id (T100). Rows copy as they
+// are with no owner; the first user who signs in claims them (dev data from before T100).
+const COPY_FROM_V2_V3 = `
   INSERT INTO outbox (id, "table", operation, payload, created_at, status, attempts, next_attempt_at, last_error, rev)
   SELECT id, "table", operation, payload, created_at, status, attempts, next_attempt_at, last_error, rev
     FROM outbox_old;
@@ -59,9 +62,11 @@ function migrate(d: SQLite.SQLiteDatabase): void {
     )?.n;
     if (hasTable) {
       // SQLite can't alter a CHECK constraint, so rebuild the table.
-      d.execSync(`ALTER TABLE outbox RENAME TO outbox_old; DROP INDEX IF EXISTS outbox_status_created;`);
+      d.execSync(
+        `ALTER TABLE outbox RENAME TO outbox_old; DROP INDEX IF EXISTS outbox_status_created; DROP INDEX IF EXISTS outbox_user_status_created;`,
+      );
       d.execSync(CREATE_CURRENT);
-      d.execSync(version >= 2 ? COPY_FROM_V2 : COPY_FROM_V1);
+      d.execSync(version >= 2 ? COPY_FROM_V2_V3 : COPY_FROM_V1);
       d.execSync(`DROP TABLE outbox_old;`);
     } else {
       d.execSync(CREATE_CURRENT);
@@ -86,6 +91,7 @@ interface Row {
   next_attempt_at: number;
   last_error: string | null;
   rev: number;
+  user_id: string | null;
 }
 
 function toEntry(r: Row): OutboxEntry {
@@ -100,6 +106,7 @@ function toEntry(r: Row): OutboxEntry {
     next_attempt_at: r.next_attempt_at,
     last_error: r.last_error,
     rev: r.rev,
+    user_id: r.user_id,
   };
 }
 
@@ -112,8 +119,8 @@ export const sqliteOutboxStore: OutboxStore = {
   async put(e) {
     db().runSync(
       `INSERT OR REPLACE INTO outbox
-         (id, "table", operation, payload, created_at, status, attempts, next_attempt_at, last_error, rev)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, "table", operation, payload, created_at, status, attempts, next_attempt_at, last_error, rev, user_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       e.id,
       e.table,
       e.operation,
@@ -124,6 +131,7 @@ export const sqliteOutboxStore: OutboxStore = {
       e.next_attempt_at,
       e.last_error,
       e.rev,
+      e.user_id,
     );
   },
 
@@ -131,7 +139,23 @@ export const sqliteOutboxStore: OutboxStore = {
     db().runSync(`DELETE FROM outbox WHERE id = ?`, id);
   },
 
-  async list(status) {
-    return db().getAllSync<Row>(`SELECT * FROM outbox WHERE status = ? ORDER BY created_at ASC`, status).map(toEntry);
+  async list(status, userId) {
+    const rows =
+      userId === undefined
+        ? db().getAllSync<Row>(`SELECT * FROM outbox WHERE status = ? ORDER BY created_at ASC`, status)
+        : db().getAllSync<Row>(
+            `SELECT * FROM outbox WHERE status = ? AND user_id = ? ORDER BY created_at ASC`,
+            status,
+            userId,
+          );
+    return rows.map(toEntry);
+  },
+
+  async removeUser(userId) {
+    db().runSync(`DELETE FROM outbox WHERE user_id = ?`, userId);
+  },
+
+  async claimUnowned(userId) {
+    db().runSync(`UPDATE outbox SET user_id = ? WHERE user_id IS NULL`, userId);
   },
 };

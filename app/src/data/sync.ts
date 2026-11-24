@@ -54,6 +54,22 @@ export async function tryFlush(): Promise<void> {
   }
 }
 
+/**
+ * Tell the outbox who is signed in (T100). Call on every auth change. Signed out, nothing
+ * is sent (a flush would run as anon) and the retry timer stops; entries stay on the phone
+ * for their owner.
+ */
+export function setSyncUser(userId: string | null): void {
+  outbox.setUser(userId);
+  if (userId) void tryFlush();
+  else scheduleRetry(null);
+}
+
+/** Remove every queued change of a deleted account from this phone. */
+export async function purgeUserOutbox(userId: string): Promise<void> {
+  await outbox.purgeUser(userId);
+}
+
 /** Call once at app startup (after auth is ready). */
 export function initSync(): void {
   if (initialized) return;
