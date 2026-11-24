@@ -1,0 +1,31 @@
+name: EAS build (iOS)
+
+# Manual trigger: builds the iOS app in Expo's cloud (no Mac needed for this step)
+# and optionally submits it to TestFlight. Requires repo secret EXPO_TOKEN.
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile'
+        type: choice
+        options: [development, preview, production]
+        default: preview
+      submit:
+        description: 'Submit to TestFlight after build (production only)'
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: expo/expo-github-action@v8
+        with: { eas-version: latest, token: '${{ secrets.EXPO_TOKEN }}' }
+      - run: if [ -f package-lock.json ]; then npm ci; else ./scripts/bootstrap.sh; fi
+      - run: eas build --platform ios --profile ${{ inputs.profile }} --non-interactive --no-wait
+      - if: ${{ inputs.submit && inputs.profile == 'production' }}
+        run: eas submit --platform ios --latest --non-interactive

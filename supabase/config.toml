@@ -1,0 +1,50 @@
+# Local development config for the Supabase CLI.
+# Hosted project settings (Apple provider keys, SMTP) are set in the dashboard.
+project_id = "glovebox"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[auth]
+enabled = true
+site_url = "glovebox://"
+additional_redirect_urls = ["glovebox://auth-callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 600
+
+[auth.external.apple]
+enabled = true
+client_id = "env(APPLE_SERVICES_ID)"
+secret = "env(APPLE_CLIENT_SECRET)"
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+
+[functions.public-report]
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+verify_jwt = false

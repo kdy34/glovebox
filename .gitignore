@@ -1,0 +1,30 @@
+# env & secrets
+.env
+.env.*
+!.env.example
+supabase/.env.local
+*.p8
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# node / expo
+node_modules/
+.expo/
+dist/
+web-build/
+app/ios/
+app/android/
+*.tsbuildinfo
+coverage/
+
+# supabase
+supabase/.branches
+supabase/.temp
+
+# os / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,26 @@
+{
+  "name": "glovebox",
+  "version": "1.0.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint",
+    "test": "npm run test:domain && npm run test:ui",
+    "test:domain": "tsx --test __tests__/domain/*.test.ts __tests__/contracts/*.test.ts",
+    "test:ui": "jest --passWithNoTests",
+    "seed:demo": "tsx scripts/seedDemo.ts",
+    "bootstrap": "./scripts/bootstrap.sh"
+  },
+  "dependencies": {
+    "expo": "~57.0.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.0"
+  }
+}

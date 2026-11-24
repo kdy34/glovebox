@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glovebox.app/schemas/receipt-extraction.v1.json",
+  "title": "ReceiptExtractionDraft v1",
+  "description": "Draft produced by AI from a receipt image. Untrusted until the user confirms. All money is integer cents (USD). Confidence is in the range 0..1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "is_receipt", "fields", "line_items", "warnings"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "is_receipt": { "type": "boolean", "description": "false if the image is not an automotive or general purchase receipt" },
+    "fields": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shop_name", "shop_address", "performed_on", "odometer", "subtotal_cents", "tax_cents", "total_cents", "suggested_category", "suggested_title", "is_diy_purchase"],
+      "properties": {
+        "shop_name": { "$ref": "#/$defs/strField" },
+        "shop_address": { "$ref": "#/$defs/strField" },
+        "performed_on": {
+          "type": "object", "additionalProperties": false, "required": ["value", "confidence"],
+          "properties": { "value": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }, "confidence": { "$ref": "#/$defs/conf" } }
+        },
+        "odometer": { "$ref": "#/$defs/intField" },
+        "subtotal_cents": { "$ref": "#/$defs/intField" },
+        "tax_cents": { "$ref": "#/$defs/intField" },
+        "total_cents": { "$ref": "#/$defs/intField" },
+        "suggested_category": {
+          "type": "object", "additionalProperties": false, "required": ["value", "confidence"],
+          "properties": {
+            "value": { "enum": ["oil_change", "tire_rotation", "tires", "brakes", "battery", "filters", "fluids", "inspection", "repair", "body", "other_maintenance", "fuel", "registration", "parking_tolls", "other_expense", null] },
+            "confidence": { "$ref": "#/$defs/conf" }
+          }
+        },
+        "suggested_title": { "$ref": "#/$defs/strField" },
+        "is_diy_purchase": {
+          "type": "object", "additionalProperties": false, "required": ["value", "confidence"],
+          "description": "true for an auto-parts store purchase with no labor (e.g. AutoZone oil + filter)",
+          "properties": { "value": { "type": ["boolean", "null"] }, "confidence": { "$ref": "#/$defs/conf" } }
+        }
+      }
+    },
+    "line_items": {
+      "type": "array", "maxItems": 60,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["item_type", "description", "quantity", "unit_price_cents", "amount_cents", "confidence"],
+        "properties": {
+          "item_type": { "enum": ["part", "labor", "fee", "discount"] },
+          "description": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "quantity": { "type": "number", "exclusiveMinimum": 0, "maximum": 10000 },
+          "unit_price_cents": { "type": "integer", "minimum": -100000000, "maximum": 100000000 },
+          "amount_cents": { "type": "integer", "minimum": -100000000, "maximum": 100000000 },
+          "confidence": { "$ref": "#/$defs/conf" }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array", "maxItems": 10,
+      "items": { "enum": ["totals_mismatch", "multiple_vehicles", "handwritten", "partial_receipt", "low_image_quality", "non_usd_currency", "date_ambiguous"] }
+    }
+  },
+  "$defs": {
+    "conf": { "type": "number", "minimum": 0, "maximum": 1 },
+    "strField": {
+      "type": "object", "additionalProperties": false, "required": ["value", "confidence"],
+      "properties": { "value": { "type": ["string", "null"], "maxLength": 240 }, "confidence": { "$ref": "#/$defs/conf" } }
+    },
+    "intField": {
+      "type": "object", "additionalProperties": false, "required": ["value", "confidence"],
+      "properties": { "value": { "type": ["integer", "null"], "minimum": -100000000, "maximum": 100000000 }, "confidence": { "$ref": "#/$defs/conf" } }
+    }
+  }
+}

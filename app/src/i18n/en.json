@@ -1,0 +1,81 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "done": "Done",
+    "continue": "Continue",
+    "back": "Back",
+    "retry": "Try again",
+    "close": "Close",
+    "optional": "Optional",
+    "loading": "Loading…",
+    "offline": "You’re offline. Changes will sync when you’re back online.",
+    "syncing": "Syncing…",
+    "synced": "All changes saved",
+    "somethingWrong": "Something went wrong. Please try again."
+  },
+  "onboarding": {
+    "slide1Title": "Snap a receipt. Get a record.",
+    "slide1Body": "Take a photo of any service receipt — from your mechanic or the parts store. Glovebox turns it into a clean record you approve.",
+    "slide2Title": "Never miss a service",
+    "slide2Body": "Set reminders by miles or months. Glovebox tells you before your next oil change, rotation or inspection is due.",
+    "slide3Title": "Sell with proof",
+    "slide3Body": "Share a clean service history with buyers — the maintenance CARFAX never sees.",
+    "getStarted": "Get started"
+  },
+  "auth": {
+    "title": "Welcome to Glovebox",
+    "subtitle": "Your car’s paperwork, finally in one place.",
+    "apple": "Continue with Apple",
+    "email": "Continue with email",
+    "emailPlaceholder": "you@example.com",
+    "sendCode": "Send code",
+    "codeSent": "We sent a 6-digit code to {{email}}.",
+    "codePlaceholder": "123456",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "invalidEmail": "Please enter a valid email address.",
+    "invalidCode": "That code didn’t work. Check it and try again.",
+    "legal": "By continuing you agree to the Terms of Use and Privacy Policy."
+  },
+  "tabs": {
+    "garage": "Garage",
+    "reminders": "Reminders",
+    "insights": "Insights",
+    "settings": "Settings"
+  },
+  "garage": {
+    "title": "Garage",
+    "emptyTitle": "Add your first car",
+    "emptyBody": "Start with the VIN or pick the year, make and model.",
+    "addVehicle": "Add vehicle",
+    "archived": "Archived",
+    "lastService": "Last service {{date}}",
+    "noService": "No services logged yet"
+  },
+  "category": {
+    "oil_change": "Oil change",
+    "tire_rotation": "Tire rotation",
+    "tires": "Tires",
+    "brakes": "Brakes",
+    "battery": "Battery",
+    "filters": "Filters",
+    "fluids": "Fluids",
+    "inspection": "Inspection",
+    "repair": "Repair",
+    "body": "Body & glass",
+    "other_maintenance": "Other maintenance",
+    "fuel": "Fuel",
+    "insurance": "Insurance",
+    "registration": "Registration",
+    "parking_tolls": "Parking & tolls",
+    "other_expense": "Other expense"
+  },
+  "legal": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "aiNotice": "About AI receipt scanning"
+  }
+}
