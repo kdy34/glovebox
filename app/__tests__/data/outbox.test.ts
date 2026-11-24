@@ -14,6 +14,7 @@ import {
   type OutboxStore,
   type SupabaseLike,
 } from '../../src/data/outbox.ts';
+import { vehicleArchive, vehicleUnarchive, odometerExclude } from '../../src/data/writes.ts';
 import {
   saveRecordOrQueue,
   RecordSaveError,
@@ -64,6 +65,11 @@ const upsert = (id: string, table = 'vehicles'): NewOutboxEntry => ({
 });
 
 // ─── Fake Supabase that models save_record's transactional semantics ───────
+// NOT NULL columns without defaults (supabase/migrations/*_core_schema.sql).
+const NOT_NULL: Record<string, string[]> = {
+  vehicles: ['year', 'make', 'model'],
+  odometer_readings: ['vehicle_id', 'value', 'read_on'],
+};
 interface FakeRow {
   [k: string]: unknown;
 }
@@ -75,6 +81,7 @@ function makeFakeSupabase() {
     odometer_readings: new Map(),
   };
   const rpcCalls: { fn: string; args: Record<string, unknown> }[] = [];
+  const updateCalls: { table: string; id: string; fields: FakeRow }[] = [];
   let failNext: null | 'before-commit' | 'after-commit' = null;
   let odoSeq = 0;
 
@@ -113,9 +120,27 @@ function makeFakeSupabase() {
       const t = tables[table]!;
       return {
         async upsert(row: FakeRow) {
+          // Like Postgres: INSERT ... ON CONFLICT checks NOT NULL on the proposed row,
+          // even when the row already exists.
+          const missing = (NOT_NULL[table] ?? []).filter((c) => row[c] == null);
+          if (missing.length) {
+            return {
+              error: { code: '23502', message: `null value in column "${missing[0]}" violates not-null constraint` },
+            };
+          }
           const id = row.id as string;
           t.set(id, { ...(t.get(id) ?? {}), ...row });
           return { error: null };
+        },
+        update(fields: FakeRow) {
+          return {
+            async eq(_col: string, val: unknown) {
+              updateCalls.push({ table, id: val as string, fields });
+              const cur = t.get(val as string);
+              if (cur) t.set(val as string, { ...cur, ...fields });
+              return { error: null };
+            },
+          };
         },
         delete() {
           return {
@@ -132,6 +157,7 @@ function makeFakeSupabase() {
     client,
     tables,
     rpcCalls,
+    updateCalls,
     failNextRpc(mode: 'before-commit' | 'after-commit') {
       failNext = mode;
     },
@@ -592,5 +618,221 @@ describe('T098 outbox — failed entries are retried, not lost', () => {
     const before = n;
     await outbox.flush(async () => {});
     assert.equal(n, before, 'unsubscribed');
+  });
+});
+
+// ═══ T099 — partial changes use update, not upsert ═════════════════════════
+
+describe('T099 partial changes are sent as update, not upsert', () => {
+  let store: ReturnType<typeof makeMemoryStore>;
+  let clock: ReturnType<typeof makeClock>;
+  let outbox: ReturnType<typeof createOutbox>;
+  const VEH = '33333333-3333-4333-8333-333333333333';
+  const ODO = '44444444-4444-4444-8444-444444444444';
+
+  function seededServer() {
+    const server = makeFakeSupabase();
+    server.tables.vehicles!.set(VEH, {
+      id: VEH,
+      year: 2009,
+      make: 'Toyota',
+      model: 'Prius',
+      status: 'active',
+      archived_at: null,
+    });
+    server.tables.odometer_readings!.set(ODO, {
+      id: ODO,
+      vehicle_id: VEH,
+      value: 1000,
+      read_on: '2026-01-01',
+      is_excluded: false,
+    });
+    return server;
+  }
+
+  beforeEach(() => {
+    store = makeMemoryStore();
+    clock = makeClock();
+    outbox = createOutbox(store, { now: clock.now });
+  });
+
+  it('archiveVehicle syncs as an update and keeps the other columns', async () => {
+    const server = seededServer();
+    const entry = vehicleArchive(VEH, '2026-11-24T10:00:00.000Z');
+    assert.equal(entry.operation, 'update');
+    await outbox.enqueue(entry);
+    await outbox.flush(createSupabaseExecutor(server.client));
+
+    assert.equal(store._entries.get(VEH)?.status, 'synced');
+    assert.deepEqual(server.updateCalls, [
+      { table: 'vehicles', id: VEH, fields: { status: 'archived', archived_at: '2026-11-24T10:00:00.000Z' } },
+    ]);
+    const v = server.tables.vehicles!.get(VEH)!;
+    assert.equal(v.status, 'archived');
+    assert.equal(v.make, 'Toyota');
+  });
+
+  it('unarchiveVehicle syncs as an update that clears archived_at', async () => {
+    const server = seededServer();
+    server.tables.vehicles!.set(VEH, { ...server.tables.vehicles!.get(VEH)!, status: 'archived', archived_at: 'x' });
+    await outbox.enqueue(vehicleUnarchive(VEH));
+    await outbox.flush(createSupabaseExecutor(server.client));
+    const v = server.tables.vehicles!.get(VEH)!;
+    assert.equal(v.status, 'active');
+    assert.equal(v.archived_at, null);
+  });
+
+  it('excludeOdometerReading syncs as an update', async () => {
+    const server = seededServer();
+    const entry = odometerExclude(ODO);
+    assert.equal(entry.operation, 'update');
+    await outbox.enqueue(entry);
+    await outbox.flush(createSupabaseExecutor(server.client));
+    assert.equal(store._entries.get(ODO)?.status, 'synced');
+    assert.equal(server.tables.odometer_readings!.get(ODO)!.is_excluded, true);
+    assert.equal(server.tables.odometer_readings!.get(ODO)!.value, 1000);
+  });
+
+  it('an update is merged into a pending upsert for the same id (created then archived offline)', async () => {
+    const server = makeFakeSupabase();
+    await outbox.enqueue({
+      id: VEH,
+      table: 'vehicles',
+      operation: 'upsert',
+      payload: { id: VEH, year: 2009, make: 'Toyota', model: 'Prius', status: 'active' },
+    });
+    clock.tick();
+    await outbox.enqueue(vehicleArchive(VEH, '2026-11-24T10:00:00.000Z'));
+
+    const pending = await store.list('pending');
+    assert.equal(pending.length, 1);
+    assert.equal(pending[0]!.operation, 'upsert');
+    assert.deepEqual(pending[0]!.payload, {
+      id: VEH,
+      year: 2009,
+      make: 'Toyota',
+      model: 'Prius',
+      status: 'archived',
+      archived_at: '2026-11-24T10:00:00.000Z',
+    });
+
+    await outbox.flush(createSupabaseExecutor(server.client));
+    assert.equal(server.tables.vehicles!.get(VEH)?.status, 'archived');
+  });
+
+  it('two pending updates for the same id merge into one update', async () => {
+    await outbox.enqueue(vehicleArchive(VEH, 'T1'));
+    await outbox.enqueue(vehicleUnarchive(VEH));
+    const pending = await store.list('pending');
+    assert.equal(pending.length, 1);
+    assert.equal(pending[0]!.operation, 'update');
+    assert.deepEqual(pending[0]!.payload, { status: 'active', archived_at: null });
+  });
+
+  it("an upsert after a pending update keeps the update's fields it does not override", async () => {
+    await outbox.enqueue(odometerExclude(ODO));
+    await outbox.enqueue({
+      id: ODO,
+      table: 'odometer_readings',
+      operation: 'upsert',
+      payload: { id: ODO, vehicle_id: VEH, value: 1200, read_on: '2026-01-02' },
+    });
+    const [e] = await store.list('pending');
+    assert.equal(e!.operation, 'upsert');
+    assert.equal(e!.payload.is_excluded, true);
+    assert.equal(e!.payload.value, 1200);
+  });
+
+  it('an update does not resurrect a pending delete', async () => {
+    await outbox.enqueue({ id: VEH, table: 'vehicles', operation: 'delete', payload: { id: VEH } });
+    await outbox.enqueue(vehicleArchive(VEH, 'T1'));
+    const [e] = await store.list('pending');
+    assert.equal(e!.operation, 'delete');
+  });
+
+  it('an update after the earlier write already synced is queued on its own', async () => {
+    await outbox.enqueue({
+      id: VEH,
+      table: 'vehicles',
+      operation: 'upsert',
+      payload: { id: VEH, year: 2009, make: 'T', model: 'P' },
+    });
+    await outbox.flush(async () => {});
+    await outbox.enqueue(vehicleArchive(VEH, 'T1'));
+    const [e] = await store.list('pending');
+    assert.equal(e!.operation, 'update');
+    assert.deepEqual(e!.payload, { status: 'archived', archived_at: 'T1' });
+  });
+});
+
+describe('T099 server rejections go dead immediately', () => {
+  let store: ReturnType<typeof makeMemoryStore>;
+  let clock: ReturnType<typeof makeClock>;
+
+  beforeEach(() => {
+    store = makeMemoryStore();
+    clock = makeClock();
+  });
+
+  it('a partial upsert rejected with 23502 is marked dead after one attempt', async () => {
+    const outbox = createOutbox(store, { now: clock.now });
+    const server = makeFakeSupabase();
+    await outbox.enqueue({ id: 'v', table: 'vehicles', operation: 'upsert', payload: { id: 'v', status: 'archived' } });
+    await outbox.flush(createSupabaseExecutor(server.client));
+    const e = store._entries.get('v')!;
+    assert.equal(e.status, 'dead');
+    assert.equal(e.attempts, 1);
+    assert.match(e.last_error ?? '', /23502/);
+  });
+
+  for (const code of ['23502', '23514', '22023', '42501', '23503']) {
+    it(`an executor error with SQLSTATE ${code} is not retried`, async () => {
+      const outbox = createOutbox(store, { now: clock.now });
+      await outbox.enqueue(upsert('x'));
+      const res = await outbox.flush(async () => {
+        throw Object.assign(new Error('rejected'), { code });
+      });
+      assert.equal(store._entries.get('x')?.status, 'dead');
+      assert.equal(res.failed?.dead, true);
+    });
+  }
+
+  it('the queue moves on right after a rejected entry', async () => {
+    const outbox = createOutbox(store, { now: clock.now });
+    await outbox.enqueue(upsert('bad'));
+    clock.tick();
+    await outbox.enqueue(upsert('good'));
+    clock.tick();
+    const sent: string[] = [];
+    const exec = async (e: OutboxEntry) => {
+      if (e.id === 'bad') throw Object.assign(new Error('rejected'), { code: '23514' });
+      sent.push(e.id);
+    };
+    const r1 = await outbox.flush(exec);
+    assert.equal(r1.nextAttemptAt, clock.now(), 'next flush is due immediately');
+    await outbox.flush(exec);
+    assert.deepEqual(sent, ['good']);
+  });
+
+  for (const code of ['40001', '40P01', '57014', '08006', '53300']) {
+    it(`a transient SQLSTATE ${code} (serialization/timeout/connection/resources) is still retried`, async () => {
+      const outbox = createOutbox(store, { now: clock.now });
+      await outbox.enqueue(upsert('t'));
+      await outbox.flush(async () => {
+        throw Object.assign(new Error('try again'), { code });
+      });
+      const e = store._entries.get('t')!;
+      assert.equal(e.status, 'pending');
+      assert.equal(e.attempts, 1);
+    });
+  }
+
+  it('a network error without a code is still retried', async () => {
+    const outbox = createOutbox(store, { now: clock.now });
+    await outbox.enqueue(upsert('n'));
+    await outbox.flush(async () => {
+      throw new Error('TypeError: Network request failed');
+    });
+    assert.equal(store._entries.get('n')?.status, 'pending');
   });
 });

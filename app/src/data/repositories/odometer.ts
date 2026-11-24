@@ -1,7 +1,8 @@
 // Odometer repository: reads and writes odometer readings.
 import { v4 as uuid } from 'uuid';
 import { supabase } from '../supabase';
-import { enqueueWrite } from '../sync';
+import { enqueue, enqueueWrite } from '../sync';
+import { odometerExclude } from '../writes';
 import type { OdometerRow } from '../types';
 
 export interface OdometerInput {
@@ -43,5 +44,5 @@ export async function saveOdometerReading(input: OdometerInput & { id?: string }
 }
 
 export async function excludeOdometerReading(id: string): Promise<void> {
-  await enqueueWrite('odometer_readings', 'upsert', { id, is_excluded: true, updated_at: new Date().toISOString() }, id);
+  await enqueue(odometerExclude(id));
 }

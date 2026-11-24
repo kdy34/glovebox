@@ -80,7 +80,7 @@ export async function enqueue(entry: NewOutboxEntry): Promise<void> {
 /** Enqueue a table write. Call instead of writing to Supabase directly. */
 export async function enqueueWrite(
   table: string,
-  operation: 'upsert' | 'delete',
+  operation: 'upsert' | 'update' | 'delete',
   payload: Record<string, unknown>,
   id: string,
 ): Promise<void> {

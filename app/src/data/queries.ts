@@ -1,7 +1,7 @@
 // TanStack Query hooks for the app's data layer.
 // All keys are stable strings so the cache persists across app restarts.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { listVehicles, getVehicle, saveVehicle, archiveVehicle, deleteVehicle, type VehicleInput } from './repositories/vehicles';
+import { listVehicles, getVehicle, saveVehicle, archiveVehicle, unarchiveVehicle, deleteVehicle, type VehicleInput } from './repositories/vehicles';
 import { listRecords, getRecord, getLineItems, saveRecord, deleteRecord, type SaveRecordArgs } from './repositories/records';
 import { listOdometerReadings, saveOdometerReading, excludeOdometerReading, type OdometerInput } from './repositories/odometer';
 
@@ -38,6 +38,14 @@ export function useArchiveVehicle() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: archiveVehicle,
+    onSuccess: () => void qc.invalidateQueries({ queryKey: qk.vehicles }),
+  });
+}
+
+export function useUnarchiveVehicle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: unarchiveVehicle,
     onSuccess: () => void qc.invalidateQueries({ queryKey: qk.vehicles }),
   });
 }

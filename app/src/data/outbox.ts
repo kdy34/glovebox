@@ -8,8 +8,13 @@
 //   - a failed entry stays pending: attempts++, next_attempt_at = now + base·2^(attempts-1)
 //   - after maxAttempts failures it becomes 'dead' — kept for the user to review, never dropped
 //   - dead entries no longer block the queue
+//   - a server rejection (non-transient SQLSTATE, e.g. 23502) goes dead at once (T099)
+//
+// Partial changes use 'update' (T099): PostgREST upsert is INSERT ... ON CONFLICT, and
+// Postgres checks NOT NULL on the proposed row first, so a partial upsert always fails.
+// Enqueueing onto a pending upsert/update for the same id merges the fields.
 
-export type OutboxOperation = 'upsert' | 'delete' | 'rpc';
+export type OutboxOperation = 'upsert' | 'update' | 'delete' | 'rpc';
 export type OutboxStatus = 'pending' | 'synced' | 'dead';
 
 /** Payload of an 'rpc' entry. */
@@ -22,7 +27,7 @@ export interface OutboxEntry {
   id: string; // client UUID, matches the row's pk in Supabase (record id for save_record)
   table: string; // Supabase table name ('rpc' entries: the table the RPC writes)
   operation: OutboxOperation;
-  payload: Record<string, unknown>;
+  payload: Record<string, unknown>; // 'update': only the changed columns (no id)
   created_at: number; // ms epoch — determines flush order; kept when a pending entry is re-enqueued
   status: OutboxStatus;
   attempts: number;
@@ -78,6 +83,48 @@ export const DEFAULT_MAX_ATTEMPTS = 5;
 export const DEFAULT_BASE_DELAY_MS = 2_000;
 export const DEFAULT_MAX_DELAY_MS = 5 * 60_000;
 
+const SQLSTATE = /^[0-9A-Z]{5}$/;
+// SQLSTATE classes that mean "try again later", not "the server rejected this":
+// 08 connection, 40 serialization/deadlock, 53 insufficient resources, 57 operator
+// intervention (statement timeout, shutdown), 58 system error.
+const TRANSIENT_SQLSTATE_CLASSES = new Set(['08', '40', '53', '57', '58']);
+
+export function isSqlState(code: unknown): code is string {
+  return typeof code === 'string' && SQLSTATE.test(code);
+}
+
+/** True when the error carries a SQLSTATE that retrying cannot fix. */
+export function isServerRejection(err: unknown): boolean {
+  const code = (err as { code?: unknown } | null)?.code;
+  return isSqlState(code) && !TRANSIENT_SQLSTATE_CLASSES.has(code.slice(0, 2));
+}
+
+/** Error thrown by the Supabase executor; keeps the Postgres/PostgREST code. */
+export class OutboxSendError extends Error {
+  readonly code: string;
+  constructor(message: string, code: string) {
+    super(code ? `${code}: ${message}` : message);
+    this.name = 'OutboxSendError';
+    this.code = code;
+  }
+}
+
+const mergeable = (op: OutboxOperation) => op === 'upsert' || op === 'update';
+
+/** What to store when `input` is enqueued while `existing` is still pending for the same id. */
+function combine(existing: OutboxEntry | null, input: NewOutboxEntry): NewOutboxEntry {
+  if (!existing || existing.status !== 'pending') return input;
+  // A pending delete wins over a later partial change; nothing to update.
+  if (existing.operation === 'delete' && input.operation === 'update') return existing;
+  if (existing.table === input.table && mergeable(existing.operation) && mergeable(input.operation)) {
+    const operation = existing.operation === 'upsert' || input.operation === 'upsert' ? 'upsert' : 'update';
+    const payload = { ...existing.payload, ...input.payload };
+    if (operation === 'update') delete payload.id; // the upsert side already carries its id
+    return { ...input, operation, payload };
+  }
+  return input;
+}
+
 function errorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
   return typeof err === 'string' ? err : JSON.stringify(err);
@@ -98,8 +145,12 @@ export function createOutbox(store: OutboxStore, opts: OutboxOptions = {}): Outb
     async enqueue(input) {
       const existing = await store.get(input.id);
       const keepPosition = existing?.status === 'pending';
+      const next = combine(existing, input);
       await store.put({
-        ...input,
+        id: next.id,
+        table: next.table,
+        operation: next.operation,
+        payload: next.payload,
         created_at: keepPosition ? existing.created_at : now(),
         status: 'pending',
         attempts: 0,
@@ -123,7 +174,7 @@ export function createOutbox(store: OutboxStore, opts: OutboxOptions = {}): Outb
             await execute(entry);
           } catch (err) {
             const attempts = entry.attempts + 1;
-            const dead = attempts >= maxAttempts;
+            const dead = attempts >= maxAttempts || isServerRejection(err);
             const error = errorMessage(err);
             const current = await store.get(entry.id);
             // If the user edited the entry while it was in flight, the new version starts fresh.
@@ -206,15 +257,18 @@ export interface SupabaseLike {
       row: Record<string, unknown>,
       opts?: { onConflict?: string },
     ): PromiseLike<{ error: SupabaseErrorLike | null }>;
+    update(fields: Record<string, unknown>): {
+      eq(col: string, val: unknown): PromiseLike<{ error: SupabaseErrorLike | null }>;
+    };
     delete(): { eq(col: string, val: unknown): PromiseLike<{ error: SupabaseErrorLike | null }> };
   };
 }
 
 function check(error: SupabaseErrorLike | null): void {
-  if (error) throw new Error(error.code ? `${error.code}: ${error.message}` : error.message);
+  if (error) throw new OutboxSendError(error.message, error.code ?? '');
 }
 
-/** Builds an executor that sends one entry to Supabase via rpc / upsert / delete. */
+/** Builds an executor that sends one entry to Supabase via rpc / upsert / update / delete. */
 export function createSupabaseExecutor(client: SupabaseLike): EntryExecutor {
   return async (entry) => {
     switch (entry.operation) {
@@ -226,6 +280,12 @@ export function createSupabaseExecutor(client: SupabaseLike): EntryExecutor {
       }
       case 'upsert': {
         const { error } = await client.from(entry.table).upsert(entry.payload, { onConflict: 'id' });
+        check(error);
+        return;
+      }
+      case 'update': {
+        const { id: _id, ...fields } = entry.payload;
+        const { error } = await client.from(entry.table).update(fields).eq('id', entry.id);
         check(error);
         return;
       }

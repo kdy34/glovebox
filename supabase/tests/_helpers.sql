@@ -20,6 +20,21 @@ begin
   raise exception 'FAIL: % (statement did not raise)', msg;
 end $$;
 
+-- Runs a statement and asserts that it raises with a specific SQLSTATE (e.g. 23502).
+create or replace function tests.throws_code(stmt text, code text, msg text) returns void language plpgsql as $$
+begin
+  begin
+    execute stmt;
+  exception when others then
+    if sqlstate <> code then
+      raise exception 'FAIL: % (expected SQLSTATE %, got %: %)', msg, code, sqlstate, sqlerrm;
+    end if;
+    raise notice 'ok - % (raised: %)', msg, sqlerrm;
+    return;
+  end;
+  raise exception 'FAIL: % (statement did not raise)', msg;
+end $$;
+
 -- Act as a signed-in user, the way PostgREST does for each request.
 create or replace function tests.login(p_user uuid) returns void language plpgsql as $$
 begin

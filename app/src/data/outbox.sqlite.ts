@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import type { OutboxEntry, OutboxStatus, OutboxStore } from './outbox';
 
 const DB_NAME = 'glovebox_outbox.db';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 let _db: SQLite.SQLiteDatabase | null = null;
 
@@ -16,11 +16,11 @@ function db(): SQLite.SQLiteDatabase {
   return _db;
 }
 
-const CREATE_V2 = `
+const CREATE_CURRENT = `
   CREATE TABLE outbox (
     id TEXT PRIMARY KEY,
     "table" TEXT NOT NULL,
-    operation TEXT NOT NULL CHECK(operation IN ('upsert','delete','rpc')),
+    operation TEXT NOT NULL CHECK(operation IN ('upsert','update','delete','rpc')),
     payload TEXT NOT NULL,
     created_at INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','synced','dead')),
@@ -32,29 +32,39 @@ const CREATE_V2 = `
   CREATE INDEX outbox_status_created ON outbox(status, created_at);
 `;
 
+// Copies rows from the renamed old table into the current schema.
+// v1 had no backoff columns and a 'failed' status that was never retried — revive those rows.
+const COPY_FROM_V1 = `
+  INSERT INTO outbox (id, "table", operation, payload, created_at, status, attempts, next_attempt_at, last_error, rev)
+  SELECT id, "table", operation, payload, created_at,
+         CASE WHEN status = 'synced' THEN 'synced' ELSE 'pending' END,
+         0, 0, NULL, 1
+    FROM outbox_old;
+`;
+// v2 only lacks 'update' in the operation CHECK (T099); rows copy as they are.
+const COPY_FROM_V2 = `
+  INSERT INTO outbox (id, "table", operation, payload, created_at, status, attempts, next_attempt_at, last_error, rev)
+  SELECT id, "table", operation, payload, created_at, status, attempts, next_attempt_at, last_error, rev
+    FROM outbox_old;
+`;
+
 function migrate(d: SQLite.SQLiteDatabase): void {
   const row = d.getFirstSync<{ user_version: number }>('PRAGMA user_version');
   const version = row?.user_version ?? 0;
   if (version >= SCHEMA_VERSION) return;
 
   d.withTransactionSync(() => {
-    const hasV1 = d.getFirstSync<{ n: number }>(
+    const hasTable = d.getFirstSync<{ n: number }>(
       `SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'outbox'`,
     )?.n;
-    if (hasV1) {
-      // v1 → v2: add 'rpc'/'dead', backoff columns. v1 'failed' rows were never retried — revive them.
-      d.execSync(`ALTER TABLE outbox RENAME TO outbox_v1; DROP INDEX IF EXISTS outbox_status_created;`);
-      d.execSync(CREATE_V2);
-      d.execSync(`
-        INSERT INTO outbox (id, "table", operation, payload, created_at, status, attempts, next_attempt_at, last_error, rev)
-        SELECT id, "table", operation, payload, created_at,
-               CASE WHEN status = 'synced' THEN 'synced' ELSE 'pending' END,
-               0, 0, NULL, 1
-          FROM outbox_v1;
-        DROP TABLE outbox_v1;
-      `);
+    if (hasTable) {
+      // SQLite can't alter a CHECK constraint, so rebuild the table.
+      d.execSync(`ALTER TABLE outbox RENAME TO outbox_old; DROP INDEX IF EXISTS outbox_status_created;`);
+      d.execSync(CREATE_CURRENT);
+      d.execSync(version >= 2 ? COPY_FROM_V2 : COPY_FROM_V1);
+      d.execSync(`DROP TABLE outbox_old;`);
     } else {
-      d.execSync(CREATE_V2);
+      d.execSync(CREATE_CURRENT);
     }
     d.execSync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   });
