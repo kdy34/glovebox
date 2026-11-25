@@ -369,6 +369,20 @@ test('unlimited (null) limit: scans_remaining is null', async () => {
   assertEquals(r.body.scans_remaining, null);
 });
 
+test('503 when no AI key is configured, and the scan is not consumed', async () => {
+  const saved = Deno.env.get('GEMINI_API_KEY');
+  Deno.env.delete('GEMINI_API_KEY');
+  try {
+    const receipt = await addReceipt(A, vehicleA);
+    const r = await call({ config: cfg() }, { attachment_id: receipt.id, vehicle_id: vehicleA });
+    assertEquals(r.status, 503);
+    assertEquals(code(r), 'provider_error');
+    assertEquals(await scansUsed(A), 0, 'a missing key must not use up a scan');
+  } finally {
+    if (saved !== undefined) Deno.env.set('GEMINI_API_KEY', saved);
+  }
+});
+
 Deno.test('extract-receipt', async (t) => {
   try {
     await setup();

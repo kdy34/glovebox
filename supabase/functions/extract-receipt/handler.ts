@@ -103,6 +103,8 @@ export function createHandler(deps: ExtractReceiptDeps = {}) {
     // 3. config
     const cfg = applyOverrides(await loadServerConfig(admin), deps.config);
     if (!cfg.ai.enabled) throw new HttpError('ai_disabled');
+    // Resolve the provider before consuming a scan: a missing key must not use up the quota.
+    const provider = deps.provider ?? defaultProvider(cfg);
 
     // 4–5. quota. With monetization off everyone gets the free limit (app-config.md).
     const pro = await isPro(admin, user.id, cfg);
@@ -112,7 +114,6 @@ export function createHandler(deps: ExtractReceiptDeps = {}) {
     if (!allowed) throw new HttpError('quota_exceeded', { limit, resets_on: nextPeriod() });
 
     // 6. extraction row
-    const provider = deps.provider ?? defaultProvider(cfg);
     const { data: row, error: rowErr } = await admin
       .from('receipt_extractions')
       .insert({ user_id: user.id, attachment_id: att.id, status: 'pending', provider: provider.name, model: provider.model })

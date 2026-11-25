@@ -264,6 +264,12 @@ Bug: the sign-up and sign-in emails used Supabase's default templates, which sho
   (d) The sign-in legal line is one sentence, with Terms of Use and Privacy Policy as inline links instead of being repeated after it (`auth.legalPrefix`/`legalAnd`/`legalSuffix`). Test: `__tests__/domain/signInLegal.test.ts`.
 - [x] T104 [US1] Bug: a Garage card for a car without a nickname shows "2009 Toyota Prius" twice, as the title and again as the subtitle. The subtitle must never repeat the title. With a nickname: title = nickname, subtitle = year make model (unchanged). Without one: title = year make model, subtitle = the trim if set, else "Last service {date}" from the latest service record (expenses don't count), else "No services logged yet" once records have loaded (nothing while they load, so the card never claims no services for a car that has some). `vehicleCardText`/`lastServiceDate` in `app/src/domain/vehicleCard.ts`, used by `app/app/(tabs)/index.tsx`. Test: `__tests__/domain/vehicleCard.test.ts`.
 
+
+## Converge: US2 client prerequisites (found 2026-11-25)
+
+- [x] T105 [US2] Bug (FR-017): with no `GEMINI_API_KEY`, `extract-receipt` consumed a scan before failing, with no refund, so a missing key used up the free quota. The provider is now resolved before `consume_scan` (`supabase/functions/extract-receipt/handler.ts`). Test: "503 when no AI key is configured, and the scan is not consumed" in `extract-receipt/index.test.ts`.
+- [x] T106 [US2] Security (constitution IV): `service_records.extraction_id` wasn't ownership-checked (FK checks bypass RLS), so a record could point at another user's extraction. New `owns_extraction()` in the `records_insert`/`records_update` checks (`supabase/migrations/20261125000002_record_extraction_owner.sql`). Test: `supabase/tests/ai_records.test.sql` (audit trail kept, foreign extraction rejected, attachment linking, `corrected_fields` the only client-writable extraction column).
+
 ---
 
 ## Backlog (future specs, not part of 001)
