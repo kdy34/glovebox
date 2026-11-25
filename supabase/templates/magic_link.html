@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!-- T101 (FR-001): Sign-in email (returning user). Code only, no link: the app signs in with the 6-digit code. -->
+<!-- Local: wired in supabase/config.toml. Hosted: paste into Dashboard → Authentication → Email Templates. -->
+<!-- Colors are the light-theme tokens from app/src/ui/tokens.ts: bg, surface, text (ink), textMuted (both pass AA on surface), accent (border only). -->
+<html lang="en">
+  <body style="margin:0;padding:0;background-color:#F7F5F0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F7F5F0;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background-color:#FFFFFF;border-radius:12px;border-top:6px solid #F2A900;">
+            <tr>
+              <td style="padding:32px 32px 8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0F1B2D;">
+                <p style="margin:0;font-size:18px;font-weight:700;">Glovebox</p>
+                <p style="margin:16px 0 0;font-size:16px;">Your sign-in code:</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:24px 32px;">
+                <p style="margin:0;font-family:Menlo,Consolas,'Courier New',monospace;font-size:32px;font-weight:700;letter-spacing:8px;color:#0F1B2D;">{{ .Token }}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:15px;color:#4A5568;">
+                <p style="margin:0;">Enter this code in the Glovebox app. It expires in 10 minutes.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

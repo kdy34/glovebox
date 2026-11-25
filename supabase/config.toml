@@ -30,6 +30,16 @@ enable_confirmations = true
 otp_length = 6
 otp_expiry = 600
 
+# T101 (FR-001): the app signs in with the 6-digit code, so both emails show {{ .Token }} and no link.
+# Local only. Paste the same files into the hosted project (quickstart.md §3).
+[auth.email.template.confirmation]
+subject = "Your Glovebox sign-up code"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.magic_link]
+subject = "Your Glovebox sign-in code"
+content_path = "./supabase/templates/magic_link.html"
+
 [auth.external.apple]
 enabled = true
 client_id = "env(APPLE_SERVICES_ID)"

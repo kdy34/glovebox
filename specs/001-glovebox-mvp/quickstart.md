@@ -66,6 +66,10 @@ supabase secrets set GEMINI_API_KEY=... REVENUECAT_WEBHOOK_SECRET=... SITE_ORIGI
 
 Then, in the Supabase dashboard:
 - **Auth → Providers:** enable Apple (Services ID, key, team ID) and Email OTP.
+- **Authentication → Email Templates (T101):** `supabase/config.toml` only sets the templates for local development, so set them in the hosted project too.
+  - **Confirm signup:** subject `Your Glovebox sign-up code`, body = the contents of `supabase/templates/confirmation.html`.
+  - **Magic Link:** subject `Your Glovebox sign-in code`, body = the contents of `supabase/templates/magic_link.html`.
+  - Send yourself a test sign-in. The email must show a 6-digit code and no link, because the app only accepts the code.
 - Set the **SMTP** sender to the support address.
 
 ## 4. Deploy `web/`
