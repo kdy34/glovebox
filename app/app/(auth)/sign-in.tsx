@@ -118,10 +118,11 @@ export default function SignIn() {
         {step === 'choose' && error ? <Text color="dangerText">{error}</Text> : null}
 
         <Text variant="footnote" color="textMuted" center style={{ marginTop: t.spacing.xl }}>
-          {tr('auth.legal')}{' '}
+          {tr('auth.legalPrefix')}
           <Link href="/legal/terms" style={{ textDecorationLine: 'underline' }}>{tr('legal.terms')}</Link>
-          {' · '}
+          {tr('auth.legalAnd')}
           <Link href="/legal/privacy" style={{ textDecorationLine: 'underline' }}>{tr('legal.privacy')}</Link>
+          {tr('auth.legalSuffix')}
         </Text>
       </Screen>
     </KeyboardAvoidingView>

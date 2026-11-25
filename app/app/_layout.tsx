@@ -6,6 +6,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getFocusedRouteNameFromRoute } from 'expo-router/react-navigation';
 import { AppState, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -13,6 +15,7 @@ import { AuthProvider, useAuth } from '@/data/auth';
 import { queryClient } from '@/data/queryClient';
 import { initSync, setSyncUser } from '@/data/sync';
 import { SyncBanner } from '@/features/sync/SyncBanner';
+import { STACK_TITLES, tabTitleKey } from '@/navigation/screens';
 import { initAnalytics } from '@/services/analytics';
 import { initSentry, wrapRoot } from '@/services/sentry';
 import { ThemeProvider, useTheme } from '@/ui/theme';
@@ -31,6 +34,7 @@ function onAppStateChange(status: AppStateStatus) {
 function RootNavigator() {
   const { session, loading } = useAuth();
   const t = useTheme();
+  const { t: tr } = useTranslation();
 
   useEffect(() => {
     if (!loading) void SplashScreen.hideAsync();
@@ -60,15 +64,21 @@ function RootNavigator() {
           headerLargeTitle: false,
         }}
       >
+        {/* T103b: every screen has a real title; iOS also shows it as the next screen's back label. */}
         <Stack.Protected guard={!signedIn}>
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)/sign-in" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false, title: tr(STACK_TITLES.onboarding) }} />
+          <Stack.Screen name="(auth)/sign-in" options={{ headerShown: false, title: tr(STACK_TITLES['(auth)/sign-in']) }} />
         </Stack.Protected>
         <Stack.Protected guard={signedIn}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {/* vehicle/*, record/*, scan/*, paywall are added with their stories (US1–US7). */}
+          <Stack.Screen
+            name="(tabs)"
+            options={({ route }) => ({ headerShown: false, title: tr(tabTitleKey(getFocusedRouteNameFromRoute(route))) })}
+          />
+          {(['vehicle/new', 'vehicle/[id]/index', 'vehicle/[id]/edit', 'record/new', 'record/[id]', 'odometer/new'] as const).map((name) => (
+            <Stack.Screen key={name} name={name} options={{ title: tr(STACK_TITLES[name]) }} />
+          ))}
         </Stack.Protected>
-        <Stack.Screen name="legal/[doc]" options={{ title: '' }} />
+        <Stack.Screen name="legal/[doc]" options={{ title: tr(STACK_TITLES['legal/[doc]']) }} />
       </Stack>
     </>
   );

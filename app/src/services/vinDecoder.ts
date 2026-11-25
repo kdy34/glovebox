@@ -1,5 +1,6 @@
 // NHTSA vPIC VIN decoder (FR-006). Free, no key needed.
 // Timeout: 8 s. Falls back gracefully (returns null) if unavailable.
+import { formatMake } from '@/domain/make';
 
 const VPIC_BASE = 'https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvaluesextended';
 const TIMEOUT_MS = 8_000;
@@ -50,9 +51,10 @@ export async function decodeVin(vin: string): Promise<VinDecodeResult | null> {
     if (r.ErrorCode && !['0', '1', '0 - No errors detected'].includes(r.ErrorCode)) return null;
 
     const year = r.ModelYear ? parseInt(r.ModelYear, 10) : null;
+    const make = pickFirst(r.Make);
     return {
       year: year && !isNaN(year) ? year : null,
-      make: pickFirst(r.Make),
+      make: make ? formatMake(make) : null, // "TOYOTA" → "Toyota" (T103c)
       model: pickFirst(r.Model),
       trim: pickFirst(r.Trim),
       bodyClass: pickFirst(r.BodyClass),

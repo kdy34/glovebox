@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { normalizeVin, validateVin } from '@/domain/vin';
 import { decodeVin } from '@/services/vinDecoder';
 import { useSaveVehicle } from '@/data/queries';
-import { Button, Screen, Text, TextField } from '@/ui/components';
+import { Button, Screen, TextField, SegmentedControl } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 import { reportSaveError } from '@/services/saveError';
 
@@ -86,8 +86,6 @@ export default function NewVehicle() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen scroll>
-        <Text variant="title2">{tr('vehicle.addTitle')}</Text>
-
         <TextField
           label={tr('vehicle.vinLabel')}
           hint={decoding ? tr('vehicle.vinDecoding') : tr('vehicle.vinHint')}
@@ -148,20 +146,12 @@ export default function NewVehicle() {
           accessibilityLabel={tr('vehicle.nicknameLabel')}
         />
 
-        <View>
-          <Text variant="footnote" color="textMuted" style={{ marginBottom: t.spacing.xs }}>{tr('vehicle.unitLabel')}</Text>
-          <View style={{ flexDirection: 'row', gap: t.spacing.sm }}>
-            {(['mi', 'km'] as const).map((u) => (
-              <Button
-                key={u}
-                title={u === 'mi' ? tr('vehicle.mi') : tr('vehicle.km')}
-                variant={unit === u ? 'primary' : 'secondary'}
-                onPress={() => setUnit(u)}
-                style={{ flex: 1 }}
-              />
-            ))}
-          </View>
-        </View>
+        <SegmentedControl
+          label={tr('vehicle.unitLabel')}
+          value={unit}
+          onChange={setUnit}
+          options={[{ value: 'mi', label: tr('vehicle.mi') }, { value: 'km', label: tr('vehicle.km') }]}
+        />
 
         <Button
           title={tr('common.save')}

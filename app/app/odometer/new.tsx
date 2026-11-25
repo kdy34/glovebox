@@ -59,8 +59,6 @@ export default function NewOdometer() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen scroll>
-        <Text variant="title2">{tr('odometer.newTitle')}</Text>
-
         <TextField
           label={`${tr('odometer.valueLabel')} (${unit})`}
           value={value}

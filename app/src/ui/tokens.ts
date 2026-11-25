@@ -6,6 +6,7 @@ export type ColorToken =
   | 'text' | 'textMuted'
   | 'primary' | 'onPrimary'
   | 'accent' | 'onAccent' | 'accentText'
+  | 'selectedBg' | 'onSelected'
   | 'success' | 'successText' | 'warning' | 'warningText' | 'danger' | 'dangerText'
   | 'overlay';
 
@@ -27,6 +28,8 @@ export const palettes: { light: Palette; dark: Palette } = {
     accent: amber, // fills only (chips, rings, highlights) — never small text on light bg
     onAccent: ink,
     accentText: '#8A5A00',
+    selectedBg: ink, // T103a: selected segment is a filled navy
+    onSelected: '#FFFFFF',
     success: '#2E9E6B',
     successText: '#1D7049',
     warning: '#F2A900',
@@ -47,6 +50,8 @@ export const palettes: { light: Palette; dark: Palette } = {
     accent: amber,
     onAccent: ink,
     accentText: '#F5B829',
+    selectedBg: '#2E4A7A', // lighter navy so the fill reads against the dark surfaces
+    onSelected: '#FFFFFF',
     success: '#3FBF86',
     successText: '#6FDCA8',
     warning: '#F2A900',
@@ -61,7 +66,7 @@ export const palettes: { light: Palette; dark: Palette } = {
 export const textPairs: readonly [ColorToken, ColorToken, number][] = [
   ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surfaceAlt', 4.5],
   ['textMuted', 'bg', 4.5], ['textMuted', 'surface', 4.5], ['textMuted', 'surfaceAlt', 4.5],
-  ['onPrimary', 'primary', 4.5], ['onAccent', 'accent', 4.5],
+  ['onPrimary', 'primary', 4.5], ['onAccent', 'accent', 4.5], ['onSelected', 'selectedBg', 4.5],
   ['accentText', 'surface', 4.5], ['accentText', 'bg', 4.5],
   ['successText', 'surface', 4.5], ['warningText', 'surface', 4.5], ['dangerText', 'surface', 4.5],
   ['successText', 'bg', 4.5], ['dangerText', 'bg', 4.5],

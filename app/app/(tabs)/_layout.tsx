@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import Svg, { Path } from 'react-native-svg';
+import { TAB_TITLES } from '@/navigation/screens';
 import { useTheme } from '@/ui/theme';
 
 // Simple line icons (SF Symbols-like) so we don't ship an icon font.
@@ -40,7 +41,7 @@ export default function TabsLayout() {
             key={name}
             name={name}
             options={{
-              title: tr(`tabs.${key}`),
+              title: tr(TAB_TITLES[name]),
               tabBarIcon: ({ color }) => <Icon d={icons[key]} color={color as string} />,
             }}
           />

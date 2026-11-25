@@ -1,5 +1,6 @@
 export { Text } from './Text';
 export { Button } from './Button';
+export { SegmentedControl } from './SegmentedControl';
 export { Card } from './Card';
 export { TextField } from './TextField';
 export { MoneyField } from './MoneyField';

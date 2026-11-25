@@ -13,7 +13,7 @@ interface Props extends Omit<PressableProps, 'children'> {
   haptic?: boolean;
 }
 
-export function Button({ title, variant = 'primary', loading, disabled, icon, haptic = true, onPress, ...rest }: Props) {
+export function Button({ title, variant = 'primary', loading, disabled, icon, haptic = true, onPress, style, ...rest }: Props) {
   const t = useTheme();
   const bg = { primary: t.colors.primary, secondary: t.colors.surfaceAlt, ghost: 'transparent', destructive: t.colors.danger }[variant];
   const fg = ({ primary: 'onPrimary', secondary: 'text', ghost: 'accentText', destructive: 'onPrimary' } as const)[variant];
@@ -28,15 +28,17 @@ export function Button({ title, variant = 'primary', loading, disabled, icon, ha
         if (haptic) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         onPress?.(e);
       }}
-      style={({ pressed }) => ({
+      // The caller's style is merged after ours, never instead of it (T103a: a `style` prop used
+      // to replace the whole function style, dropping the fill and leaving white text on nothing).
+      style={(state) => [{
         minHeight: 50, // ≥ 44pt touch target
         borderRadius: t.radius.md,
         backgroundColor: variant === 'destructive' ? t.colors.dangerText : bg,
-        opacity: isDisabled ? 0.5 : pressed ? 0.85 : 1,
+        opacity: isDisabled ? 0.5 : state.pressed ? 0.85 : 1,
         paddingHorizontal: t.spacing.lg,
         alignItems: 'center',
         justifyContent: 'center',
-      })}
+      }, typeof style === 'function' ? style(state) : style]}
       {...rest}
     >
       {loading ? (

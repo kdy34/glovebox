@@ -1,7 +1,7 @@
 // Vehicle detail screen (T036): header, timeline grouped by month, filters, FAB.
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { formatCents } from '@/domain/money';
@@ -82,38 +82,32 @@ export default function VehicleDetail() {
 
   const displayName = vehicle
     ? (vehicle.nickname ?? `${vehicle.year} ${vehicle.make} ${vehicle.model}`)
-    : '…';
+    : tr('nav.vehicle');
 
   return (
     <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: t.colors.bg }}>
-      {/* Header */}
-      <View
-        style={{
-          paddingHorizontal: t.spacing.lg,
-          paddingVertical: t.spacing.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+      {/* T103b: the vehicle's name is the native header title (and the back label of the screens
+          pushed from here); Edit lives in the header. Only the year/make/model line stays in-page. */}
+      <Stack.Screen
+        options={{
+          title: displayName,
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push(`/vehicle/${id}/edit`)}
+              accessibilityRole="button"
+              accessibilityLabel={tr('common.edit')}
+              hitSlop={12}
+            >
+              <Text variant="body" color="accentText">{tr('common.edit')}</Text>
+            </Pressable>
+          ),
         }}
-      >
-        <View style={{ flex: 1 }}>
-          <Text variant="title2" numberOfLines={1}>{displayName}</Text>
-          {vehicle && vehicle.nickname && (
-            <Text variant="footnote" color="textMuted">
-              {vehicle.year} {vehicle.make} {vehicle.model}
-            </Text>
-          )}
-        </View>
-        <Pressable
-          onPress={() => router.push(`/vehicle/${id}/edit`)}
-          accessibilityRole="button"
-          accessibilityLabel={tr('common.edit')}
-          hitSlop={12}
-          style={{ padding: t.spacing.xs }}
-        >
-          <Text variant="body" color="accentText">{tr('common.edit')}</Text>
-        </Pressable>
-      </View>
+      />
+      {vehicle && vehicle.nickname ? (
+        <Text variant="footnote" color="textMuted" style={{ paddingHorizontal: t.spacing.lg, paddingBottom: t.spacing.sm }}>
+          {vehicle.year} {vehicle.make} {vehicle.model}
+        </Text>
+      ) : null}
 
       {/* Filter chips */}
       <View style={{ flexDirection: 'row', gap: t.spacing.sm, paddingHorizontal: t.spacing.lg, paddingBottom: t.spacing.sm }}>

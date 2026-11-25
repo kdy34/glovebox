@@ -39,7 +39,9 @@
     "resend": "Resend code",
     "invalidEmail": "Please enter a valid email address.",
     "invalidCode": "That code didn’t work. Check it and try again.",
-    "legal": "By continuing you agree to the Terms of Use and Privacy Policy."
+    "legalPrefix": "By continuing you agree to the ",
+    "legalAnd": " and ",
+    "legalSuffix": "."
   },
   "tabs": {
     "garage": "Garage",
@@ -195,5 +197,11 @@
     "contactSupport": "Contact support",
     "signOut": "Sign out",
     "version": "Glovebox {{version}}"
+  },
+  "nav": {
+    "welcome": "Welcome",
+    "signIn": "Sign in",
+    "vehicle": "Vehicle",
+    "legal": "Legal"
   }
 }

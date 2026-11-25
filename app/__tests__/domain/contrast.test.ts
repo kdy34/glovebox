@@ -11,6 +11,17 @@ describe('contrastRatio', () => {
   });
 });
 
+describe('segmented control selection (T103a)', () => {
+  it('the selected segment is a filled navy with readable text', () => {
+    assert.ok(textPairs.some(([fg, bg]) => fg === 'onSelected' && bg === 'selectedBg'), 'onSelected/selectedBg is in textPairs');
+    assert.equal(palettes.light.selectedBg, '#0F1B2D');
+    for (const mode of ['light', 'dark'] as const) {
+      assert.notEqual(palettes[mode].selectedBg, 'transparent');
+      assert.ok(contrastRatio(palettes[mode].onSelected, palettes[mode].selectedBg) >= 4.5, `${mode} selected text`);
+    }
+  });
+});
+
 for (const mode of ['light', 'dark'] as const) {
   describe(`${mode} palette`, () => {
     for (const [fg, bg, min] of textPairs) {

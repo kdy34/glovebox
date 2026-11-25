@@ -254,7 +254,6 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen scroll>
-        <Text variant="title2">{recordId ? tr('record.editTitle') : tr('record.newTitle')}</Text>
 
         {/* Kind toggle */}
         <View>
