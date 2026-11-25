@@ -160,7 +160,7 @@ export default function VehicleDetail() {
             <Pressable
               onPress={() => { setFabOpen(false); router.push(`/odometer/new?vehicleId=${id}`); }}
               accessibilityRole="button"
-              accessibilityLabel="Log odometer"
+              accessibilityLabel={tr('vehicleScreen.fabLogOdometer')}
               style={{
                 backgroundColor: t.colors.surface,
                 borderRadius: t.radius.pill,
@@ -173,12 +173,12 @@ export default function VehicleDetail() {
                 gap: t.spacing.sm,
               }}
             >
-              <Text variant="callout">Odometer</Text>
+              <Text variant="callout">{tr('vehicleScreen.fabOdometer')}</Text>
             </Pressable>
             <Pressable
               onPress={() => { setFabOpen(false); router.push(`/record/new?vehicleId=${id}`); }}
               accessibilityRole="button"
-              accessibilityLabel="Log manually"
+              accessibilityLabel={tr('vehicleScreen.fabLogManual')}
               style={{
                 backgroundColor: t.colors.surface,
                 borderRadius: t.radius.pill,
@@ -188,14 +188,27 @@ export default function VehicleDetail() {
                 borderColor: t.colors.border,
               }}
             >
-              <Text variant="callout">Manual entry</Text>
+              <Text variant="callout">{tr('vehicleScreen.fabManual')}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => { setFabOpen(false); router.push(`/scan?vehicleId=${id}`); }}
+              accessibilityRole="button"
+              accessibilityLabel={tr('vehicleScreen.fabScan')}
+              style={{
+                backgroundColor: t.colors.primary,
+                borderRadius: t.radius.pill,
+                paddingHorizontal: t.spacing.lg,
+                paddingVertical: t.spacing.sm,
+              }}
+            >
+              <Text variant="callout" color="onPrimary">{tr('vehicleScreen.fabScan')}</Text>
             </Pressable>
           </>
         )}
         <Pressable
           onPress={() => setFabOpen(!fabOpen)}
           accessibilityRole="button"
-          accessibilityLabel={fabOpen ? 'Close menu' : 'Add record'}
+          accessibilityLabel={fabOpen ? tr('vehicleScreen.fabClose') : tr('vehicleScreen.fabOpen')}
           style={{
             width: 56,
             height: 56,

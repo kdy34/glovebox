@@ -4,6 +4,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme';
 import { Text } from './Text';
 
@@ -17,6 +18,8 @@ interface Props {
   minDate?: string;
   maxDate?: string;
   accessibilityLabel?: string;
+  /** AI draft field to review (FR-013). */
+  flagged?: boolean;
 }
 
 function toDate(s: string): Date {
@@ -40,33 +43,42 @@ function toIso(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export function DateField({ label, value, onChange, error, hint, minDate, maxDate, accessibilityLabel }: Props) {
+export function DateField({ label, value, onChange, error, hint, minDate, maxDate, accessibilityLabel, flagged }: Props) {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const [open, setOpen] = useState(false);
-  const borderColor = error ? t.colors.dangerText : t.colors.border;
+  const borderColor = error ? t.colors.dangerText : flagged ? t.colors.accent : t.colors.border;
+  const borderWidth = error || flagged ? 2 : 1;
+  const labelRow = (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+      <Text variant="footnote" color="textMuted">{label}</Text>
+      {flagged && !error ? <Text variant="caption" color="accentText">{tr('common.pleaseCheck')}</Text> : null}
+    </View>
+  );
 
   // On iOS, we show a spinner sheet. On other platforms (Android, web) we fall back to a
   // text input (the record form is iOS-only for v1; this keeps tests happy).
   if (Platform.OS !== 'ios') {
     return (
       <View style={{ gap: t.spacing.xs }}>
-        <Text variant="footnote" color="textMuted">{label}</Text>
+        {labelRow}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel ?? label}
           accessibilityValue={{ text: formatDisplay(value) }}
+          accessibilityHint={flagged ? tr('common.pleaseCheckHint') : undefined}
           onPress={() => setOpen(!open)}
           style={{
             minHeight: 48,
             backgroundColor: t.colors.surface,
-            borderWidth: 1,
+            borderWidth,
             borderColor,
             borderRadius: t.radius.md,
             paddingHorizontal: t.spacing.md,
             justifyContent: 'center',
           }}
         >
-          <Text variant="body" color={value ? 'text' : 'textMuted'}>{value ? formatDisplay(value) : 'Select a date'}</Text>
+          <Text variant="body" color={value ? 'text' : 'textMuted'}>{value ? formatDisplay(value) : tr('common.selectDate')}</Text>
         </Pressable>
         {error ? <Text variant="footnote" color="dangerText">{error}</Text> : hint ? <Text variant="footnote" color="textMuted">{hint}</Text> : null}
       </View>
@@ -75,7 +87,7 @@ export function DateField({ label, value, onChange, error, hint, minDate, maxDat
 
   return (
     <View style={{ gap: t.spacing.xs }}>
-      <Text variant="footnote" color="textMuted">{label}</Text>
+      {labelRow}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? label}
@@ -84,14 +96,14 @@ export function DateField({ label, value, onChange, error, hint, minDate, maxDat
         style={{
           minHeight: 48,
           backgroundColor: t.colors.surface,
-          borderWidth: 1,
+          borderWidth,
           borderColor,
           borderRadius: t.radius.md,
           paddingHorizontal: t.spacing.md,
           justifyContent: 'center',
         }}
       >
-        <Text variant="body" color={value ? 'text' : 'textMuted'}>{value ? formatDisplay(value) : 'Select a date'}</Text>
+        <Text variant="body" color={value ? 'text' : 'textMuted'}>{value ? formatDisplay(value) : tr('common.selectDate')}</Text>
       </Pressable>
       {error ? <Text variant="footnote" color="dangerText">{error}</Text> : hint ? <Text variant="footnote" color="textMuted">{hint}</Text> : null}
       {open && (

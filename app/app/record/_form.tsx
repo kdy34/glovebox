@@ -1,15 +1,33 @@
 // Shared record form (T037): kind, category, date, odometer, shop/DIY, line items, tax, total, notes.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+// With `receipt` (T057) it starts from an AI draft (or a failed scan): flagged fields, the
+// mismatch banner, a duplicate prompt, and on save it links the image and records corrections.
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatCents, lineAmountCents } from '@/domain/money';
 import { SERVICE_CATEGORIES, EXPENSE_CATEGORIES, categoryLabelKey, type Category, type RecordKind } from '@/domain/categories';
-import { useSaveRecord, useRecord, useLineItems, useDeleteRecord, useVehicle } from '@/data/queries';
+import { useSaveRecord, useRecord, useLineItems, useDeleteRecord, useVehicle, useRecords } from '@/data/queries';
+import { correctedFields, formTotalsMismatch, type DraftForm, type FormFlag } from '@/domain/extraction';
+import { findLikelyDuplicate } from '@/domain/duplicates';
+import { enqueue } from '@/data/sync';
+import { attachmentLink, extractionCorrections } from '@/data/writes';
+import { track } from '@/services/analytics';
 import { RecordSaveError, type LineItemInput, type RecordInput } from '@/data/repositories/records';
 import { Button, Card, DateField, Divider, MoneyField, Screen, Text, TextField } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 import { reportSaveError } from '@/services/saveError';
 import { newId } from '@/data/ids';
+
+/** A record that starts from a receipt scan (T057). */
+export interface ReceiptContext {
+  /** The uploaded image; linked to the record on save. null if the upload failed. */
+  attachmentId: string | null;
+  /** Set when the AI produced a draft. */
+  extractionId: string | null;
+  draft: DraftForm | null;
+  /** Pick → draft time, for the scan_succeeded latency bucket. */
+  latencyMs?: number;
+}
 
 interface Props {
   vehicleId?: string;
@@ -17,6 +35,9 @@ interface Props {
   onSaved: (id: string) => void;
   onDeleted?: () => void;
   onCancel: () => void;
+  receipt?: ReceiptContext;
+  /** Shown above the form (receipt preview, fallback message). */
+  header?: ReactNode;
 }
 
 type ItemType = 'part' | 'labor' | 'fee' | 'discount';
@@ -30,10 +51,12 @@ interface LineItemDraft {
   amount_cents: number | null;
 }
 
-function LineItemRow({ item, onChange, onRemove }: {
+function LineItemRow({ item, onChange, onRemove, flagged, autoFocus }: {
   item: LineItemDraft;
   onChange: (updated: LineItemDraft) => void;
   onRemove: () => void;
+  flagged?: boolean;
+  autoFocus?: boolean;
 }) {
   const t = useTheme();
   const { t: tr } = useTranslation();
@@ -52,12 +75,14 @@ function LineItemRow({ item, onChange, onRemove }: {
             value={item.description}
             onChangeText={(v) => onChange({ ...item, description: v })}
             accessibilityLabel={tr('record.descriptionLabel')}
+            flagged={flagged}
+            autoFocus={autoFocus}
           />
         </View>
         <Pressable
           onPress={onRemove}
           accessibilityRole="button"
-          accessibilityLabel="Remove item"
+          accessibilityLabel={tr('record.removeItem')}
           hitSlop={8}
           style={{ padding: t.spacing.xs, marginTop: t.spacing.lg }}
         >
@@ -87,11 +112,12 @@ function LineItemRow({ item, onChange, onRemove }: {
         </View>
         <View style={{ flex: 2 }}>
           <MoneyField
-            label="Amount"
+            label={tr('record.amountLabel')}
             cents={item.amount_cents}
             onChangeCents={(c) => onChange({ ...item, amount_cents: c })}
             allowNegative={item.item_type === 'discount'}
-            accessibilityLabel="Amount"
+            accessibilityLabel={tr('record.amountLabel')}
+            flagged={flagged}
           />
         </View>
       </View>
@@ -106,7 +132,7 @@ function saveErrorKey(err: unknown): string {
   return 'record.saveError';
 }
 
-export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved, onDeleted, onCancel }: Props) {
+export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved, onDeleted, onCancel, receipt, header }: Props) {
   const { t: tr } = useTranslation();
   const t = useTheme();
   const { mutateAsync: save, isPending } = useSaveRecord();
@@ -116,19 +142,27 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
 
   const vehicleId = propVehicleId ?? existing?.vehicle_id ?? '';
   const { data: vehicle } = useVehicle(vehicleId);
+  const { data: vehicleRecords = [] } = useRecords(receipt ? vehicleId : '');
+  const draft = receipt?.draft ?? null;
 
   const today = new Date().toISOString().slice(0, 10);
 
   // Form state
-  const [kind, setKind] = useState<RecordKind>('service');
-  const [category, setCategory] = useState<Category>('oil_change');
-  const [date, setDate] = useState(today);
-  const [odometer, setOdometer] = useState('');
-  const [shopName, setShopName] = useState('');
-  const [isDiy, setIsDiy] = useState(false);
-  const [taxCents, setTaxCents] = useState<number | null>(null);
+  // A receipt draft seeds the initial state (it is known at mount).
+  const [kind, setKind] = useState<RecordKind>(draft?.kind ?? 'service');
+  const [category, setCategory] = useState<Category>(draft?.category ?? 'oil_change');
+  const [date, setDate] = useState(draft?.performedOn ?? today);
+  const [odometer, setOdometer] = useState(draft?.odometer ?? '');
+  const [shopName, setShopName] = useState(draft?.shopName ?? '');
+  const [shopAddress, setShopAddress] = useState(draft?.shopAddress ?? '');
+  const [isDiy, setIsDiy] = useState(draft?.isDiy ?? false);
+  const [taxCents, setTaxCents] = useState<number | null>(draft?.taxCents ?? null);
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<LineItemDraft[]>([]);
+  const [items, setItems] = useState<LineItemDraft[]>(draft?.items ?? []);
+  // FR-013: fields to check; a flag clears once the user edits that field.
+  const [flags, setFlags] = useState<ReadonlySet<FormFlag>>(new Set(draft?.flags ?? []));
+  const unflag = (f: FormFlag) => setFlags((prev) => { if (!prev.has(f)) return prev; const n = new Set(prev); n.delete(f); return n; });
+  const firstTextFlag = draft?.flags.find((f) => f === 'odometer' || f === 'shop_name' || f === 'shop_address' || f === 'tax_cents' || f.startsWith('item:'));
 
   // Prefill from existing record — multiple setState calls per effect is intentional here
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -139,6 +173,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
     setDate(existing.performed_on);
     setOdometer(existing.odometer ? String(existing.odometer) : '');
     setShopName(existing.shop_name ?? '');
+    setShopAddress(existing.shop_address ?? '');
     setIsDiy(existing.is_diy);
     setTaxCents(existing.tax_cents);
     setNotes(existing.notes ?? '');
@@ -185,12 +220,16 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
     }]);
   };
 
-  const handleSave = useCallback(async () => {
+  const mismatch = draft ? formTotalsMismatch(subtotalCents, taxCents, draft.receiptTotalCents) : false;
+
+  /** The form as a DraftForm, to compare with the AI draft (corrected_fields, SC-003). */
+  const currentAsDraft = (): DraftForm | null => draft && ({
+    ...draft, kind, category, performedOn: date, odometer, shopName, shopAddress, isDiy, taxCents,
+    items: items.map((it) => ({ ...it, unit_price_cents: it.unit_price_cents ?? 0, amount_cents: it.amount_cents ?? 0 })),
+  });
+
+  const doSave = useCallback(async () => {
     if (!vehicleId) return;
-    if (items.length === 0) {
-      Alert.alert('No items', 'Please add at least one line item.');
-      return;
-    }
     const id = recordId ?? newId();
     const odomNum = odometer ? parseInt(odometer.replace(/,/g, ''), 10) : null;
 
@@ -199,18 +238,20 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
       vehicle_id: vehicleId,
       kind,
       category,
-      title: tr(categoryLabelKey(category)),
+      // The AI's title ("Oil change + rotation") while the user keeps its category.
+      title: draft?.title && category === draft.category ? draft.title : tr(categoryLabelKey(category)),
       performed_on: date,
       odometer: odomNum ?? null,
       shop_name: isDiy ? null : (shopName.trim() || null),
-      shop_address: null,
+      shop_address: isDiy ? null : (shopAddress.trim() || null),
       is_diy: isDiy,
       currency: 'USD',
       subtotal_cents: subtotalCents,
       tax_cents: taxCents ?? 0,
       total_cents: totalCents,
       notes: notes.trim() || null,
-      source: 'manual',
+      source: receipt?.extractionId ? 'ai' : 'manual',
+      extraction_id: receipt?.extractionId ?? null,
     };
 
     const lineItems: LineItemInput[] = items.map((it, i) => ({
@@ -225,12 +266,44 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
 
     try {
       await save({ record, items: lineItems });
+      // Queued after the record, so the outbox sends them in order (also offline).
+      if (receipt?.attachmentId) await enqueue(attachmentLink(receipt.attachmentId, id));
+      const now = currentAsDraft();
+      if (receipt?.extractionId && draft && now) {
+        const corrected = correctedFields(draft, now);
+        await enqueue(extractionCorrections(receipt.extractionId, corrected));
+        const ms = receipt.latencyMs ?? 0;
+        track('scan_succeeded', { latency_bucket: ms < 5000 ? '<5s' : ms <= 15000 ? '5-15s' : '>15s', corrected_fields: corrected.length });
+      }
       onSaved(id);
     } catch (err) {
       // Validation / DB errors are never queued (T097): tell the user so they can fix the record.
       Alert.alert(tr('common.error'), reportSaveError('record', err, tr(saveErrorKey(err))));
     }
-  }, [vehicleId, recordId, kind, category, date, odometer, isDiy, shopName, subtotalCents, taxCents, totalCents, notes, items, save, tr, onSaved]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- currentAsDraft reads the same state
+  }, [vehicleId, recordId, kind, category, date, odometer, isDiy, shopName, shopAddress, subtotalCents, taxCents, totalCents, notes, items, save, tr, onSaved, receipt, draft]);
+
+  const handleSave = useCallback(async () => {
+    if (!vehicleId) return;
+    if (items.length === 0) {
+      Alert.alert(tr('record.noItemsTitle'), tr('record.noItemsBody'));
+      return;
+    }
+    if (receipt) {
+      const dup = findLikelyDuplicate(
+        { vehicleId, performedOn: date, totalCents, shopName: isDiy ? null : shopName.trim() || null, sha256: null },
+        vehicleRecords, [], recordId,
+      );
+      if (dup) {
+        Alert.alert(tr('record.duplicateTitle'), tr('record.duplicateBody'), [
+          { text: tr('common.cancel'), style: 'cancel' },
+          { text: tr('record.saveAnyway'), onPress: () => void doSave() },
+        ]);
+        return;
+      }
+    }
+    await doSave();
+  }, [vehicleId, items.length, receipt, date, totalCents, isDiy, shopName, vehicleRecords, recordId, doSave, tr]);
 
   const handleDelete = () => {
     Alert.alert(
@@ -254,6 +327,18 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen scroll>
+        {header}
+        {draft ? (
+          <Card>
+            <View style={{ gap: t.spacing.xs }}>
+              <Text variant="callout">{tr('record.aiDraftNote')}</Text>
+              {flags.size > 0 ? <Text variant="callout" color="accentText">{tr('record.checkFields', { count: flags.size })}</Text> : null}
+              {draft.warnings.filter((w) => w !== 'totals_mismatch' && w !== 'date_ambiguous').map((w) => (
+                <Text key={w} variant="footnote" color="textMuted">{tr(`scan.warning.${w}`)}</Text>
+              ))}
+            </View>
+          </Card>
+        ) : null}
 
         {/* Kind toggle */}
         <View>
@@ -273,12 +358,15 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
 
         {/* Category */}
         <View>
-          <Text variant="footnote" color="textMuted" style={{ marginBottom: t.spacing.xs }}>{tr('record.categoryLabel')}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: t.spacing.xs }}>
+            <Text variant="footnote" color="textMuted">{tr('record.categoryLabel')}</Text>
+            {flags.has('category') ? <Text variant="caption" color="accentText">{tr('common.pleaseCheck')}</Text> : null}
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -t.spacing.lg }} contentContainerStyle={{ paddingHorizontal: t.spacing.lg, gap: t.spacing.xs }}>
             {categories.map((c) => (
               <Pressable
                 key={c}
-                onPress={() => setCategory(c as Category)}
+                onPress={() => { setCategory(c as Category); unflag('category'); }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: category === c }}
                 style={{
@@ -297,15 +385,18 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
         <DateField
           label={tr('record.dateLabel')}
           value={date}
-          onChange={setDate}
+          onChange={(d) => { setDate(d); unflag('performed_on'); }}
           maxDate={today}
+          flagged={flags.has('performed_on')}
           accessibilityLabel={tr('record.dateLabel')}
         />
 
         <TextField
-          label={`${tr('record.odometerLabel')} (${vehicle?.odometer_unit ?? 'mi'}, optional)`}
+          label={tr('record.odometerOptional', { label: tr('record.odometerLabel'), unit: vehicle?.odometer_unit ?? 'mi' })}
           value={odometer}
-          onChangeText={setOdometer}
+          onChangeText={(v) => { setOdometer(v); unflag('odometer'); }}
+          flagged={flags.has('odometer')}
+          autoFocus={firstTextFlag === 'odometer'}
           keyboardType="number-pad"
           accessibilityLabel={tr('record.odometerLabel')}
         />
@@ -317,14 +408,26 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
               label={tr('record.shopLabel')}
               hint={tr('record.shopHint')}
               value={isDiy ? '' : shopName}
-              onChangeText={setShopName}
+              onChangeText={(v) => { setShopName(v); unflag('shop_name'); }}
+              flagged={flags.has('shop_name') && !isDiy}
+              autoFocus={firstTextFlag === 'shop_name' && !isDiy}
               editable={!isDiy}
               style={{ flex: 1, opacity: isDiy ? 0.5 : 1 }}
               accessibilityLabel={tr('record.shopLabel')}
             />
           </View>
+          {receipt && !isDiy ? (
+            <TextField
+              label={tr('record.addressLabel')}
+              value={shopAddress}
+              onChangeText={(v) => { setShopAddress(v); unflag('shop_address'); }}
+              flagged={flags.has('shop_address')}
+              autoFocus={firstTextFlag === 'shop_address'}
+              accessibilityLabel={tr('record.addressLabel')}
+            />
+          ) : null}
           <Pressable
-            onPress={() => setIsDiy(!isDiy)}
+            onPress={() => { setIsDiy(!isDiy); unflag('is_diy'); }}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isDiy }}
             style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.sm }}
@@ -339,6 +442,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
               {isDiy && <Text variant="caption" color="onPrimary">✓</Text>}
             </View>
             <Text variant="body">{tr('record.diyToggle')}</Text>
+            {flags.has('is_diy') ? <Text variant="caption" color="accentText">{tr('common.pleaseCheck')}</Text> : null}
           </Pressable>
         </View>
 
@@ -351,8 +455,10 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
                 {i > 0 && <Divider />}
                 <LineItemRow
                   item={item}
-                  onChange={(updated) => setItems((prev) => prev.map((it) => it.id === updated.id ? updated : it))}
+                  onChange={(updated) => { setItems((prev) => prev.map((it) => it.id === updated.id ? updated : it)); unflag(`item:${item.id}`); }}
                   onRemove={() => setItems((prev) => prev.filter((it) => it.id !== item.id))}
+                  flagged={flags.has(`item:${item.id}`)}
+                  autoFocus={firstTextFlag === `item:${item.id}`}
                 />
               </View>
             ))}
@@ -366,14 +472,21 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
             <MoneyField
               label={tr('record.taxLabel')}
               cents={taxCents}
-              onChangeCents={setTaxCents}
+              onChangeCents={(c) => { setTaxCents(c); unflag('tax_cents'); }}
               accessibilityLabel={tr('record.taxLabel')}
+              flagged={flags.has('tax_cents')}
+              autoFocus={firstTextFlag === 'tax_cents'}
             />
             <Divider />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text variant="headline">{tr('record.totalLabel')}</Text>
               <Text variant="headline" tabular>{formatCents(totalCents)}</Text>
             </View>
+            {mismatch && draft?.receiptTotalCents != null ? (
+              <Text variant="footnote" color="accentText" accessibilityLiveRegion="polite">
+                {tr('record.mismatch', { receipt: formatCents(draft.receiptTotalCents), computed: formatCents(totalCents) })}
+              </Text>
+            ) : null}
           </View>
         </Card>
 

@@ -13,6 +13,8 @@ export interface ScanSession {
   sha256: string | null;
   extraction: Extraction | null;
   error: ExtractErrorCode | null;
+  /** Time from pick to draft, for the scan_succeeded latency bucket. */
+  latencyMs: number;
 }
 
 const sessions = new Map<string, ScanSession>();

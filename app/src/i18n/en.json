@@ -15,7 +15,10 @@
     "syncing": "Syncing…",
     "synced": "All changes saved",
     "somethingWrong": "Something went wrong. Please try again.",
-    "error": "Error"
+    "error": "Error",
+    "pleaseCheck": "Please check",
+    "pleaseCheckHint": "This value may be wrong. Please check it.",
+    "selectDate": "Select a date"
   },
   "onboarding": {
     "slide1Title": "Snap a receipt. Get a record.",
@@ -152,7 +155,24 @@
     "deleteBody": "This will permanently delete this record. This cannot be undone.",
     "deleteConfirm": "Delete",
     "saveInvalid": "This record couldn't be saved because some amounts don't add up. Check the line items and totals, then try again.",
-    "saveForbidden": "You don't have permission to change this record."
+    "saveForbidden": "You don't have permission to change this record.",
+    "amountLabel": "Amount",
+    "removeItem": "Remove item",
+    "noItemsTitle": "No items",
+    "noItemsBody": "Please add at least one line item.",
+    "odometerOptional": "{{label}} ({{unit}}, optional)",
+    "addressLabel": "Shop address (optional)",
+    "scanTitle": "Check receipt",
+    "checkFields_one": "Check 1 field the AI wasn’t sure about.",
+    "checkFields_other": "Check {{count}} fields the AI wasn’t sure about.",
+    "mismatch": "The receipt total is {{receipt}}, but the items and tax add up to {{computed}}. Check the line items and tax.",
+    "duplicateTitle": "Looks like a duplicate",
+    "duplicateBody": "You already have a record on this date with the same total and shop.",
+    "saveAnyway": "Save anyway",
+    "receiptImage": "Receipt",
+    "receiptPdf": "PDF receipt attached",
+    "receiptTapToZoom": "Tap to enlarge",
+    "aiDraftNote": "Draft from your receipt. Nothing is saved until you tap Save."
   },
   "odometer": {
     "newTitle": "Log odometer",
@@ -241,7 +261,9 @@
     "welcome": "Welcome",
     "signIn": "Sign in",
     "vehicle": "Vehicle",
-    "legal": "Legal"
+    "legal": "Legal",
+    "scan": "Scan receipt",
+    "scanReview": "Check receipt"
   },
   "scan": {
     "title": "Scan receipt",
@@ -271,6 +293,22 @@
       "attachment_not_found": "The photo couldn’t be found. Enter the details below.",
       "unauthorized": "Your session expired. Sign in again to read receipts. Enter the details below.",
       "network": "You’re offline, so the receipt can’t be read. Enter the details below."
+    },
+    "warning": {
+      "multiple_vehicles": "This receipt may cover more than one vehicle.",
+      "handwritten": "This receipt is handwritten, so some values may be off.",
+      "partial_receipt": "Part of the receipt may be missing from the photo.",
+      "low_image_quality": "The photo is blurry or dark, so some values may be off.",
+      "non_usd_currency": "This receipt may not be in US dollars."
     }
+  },
+  "vehicleScreen": {
+    "fabScan": "Scan receipt",
+    "fabManual": "Manual entry",
+    "fabOdometer": "Odometer",
+    "fabLogOdometer": "Log odometer",
+    "fabLogManual": "Log manually",
+    "fabOpen": "Add record",
+    "fabClose": "Close menu"
   }
 }

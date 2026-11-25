@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import { TextInput, View, type TextInputProps } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme';
 import { Text } from './Text';
 
@@ -16,17 +17,18 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
   ref,
 ) {
   const t = useTheme();
+  const { t: tr } = useTranslation();
   const borderColor = error ? t.colors.dangerText : flagged ? t.colors.accent : t.colors.border;
   return (
     <View style={{ gap: t.spacing.xs }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text variant="footnote" color="textMuted">{label}</Text>
-        {flagged && !error ? <Text variant="caption" color="accentText">Please check</Text> : null}
+        {flagged && !error ? <Text variant="caption" color="accentText">{tr('common.pleaseCheck')}</Text> : null}
       </View>
       <TextInput
         ref={ref}
         accessibilityLabel={label}
-        accessibilityHint={error ?? (flagged ? 'This value may be wrong. Please check it.' : hint)}
+        accessibilityHint={error ?? (flagged ? tr('common.pleaseCheckHint') : hint)}
         placeholderTextColor={t.colors.textMuted}
         maxFontSizeMultiplier={2}
         style={[

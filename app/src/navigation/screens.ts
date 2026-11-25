@@ -13,6 +13,8 @@ export const STACK_TITLES = {
   'record/new': 'record.newTitle',
   'record/[id]': 'record.editTitle',
   'odometer/new': 'odometer.newTitle',
+  'scan/index': 'nav.scan',
+  'scan/review': 'nav.scanReview',
   'legal/[doc]': 'nav.legal',
 } as const;
 

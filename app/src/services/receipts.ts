@@ -134,3 +134,11 @@ export async function extractReceipt(attachmentId: string, vehicleId: string): P
 function isNetworkError(err: { message?: string } | null): boolean {
   return /network|fetch|offline|timed out/i.test(err?.message ?? '');
 }
+
+/** The user left the review without saving: remove the unlinked image (best effort, online). */
+export async function discardReceipt(attachmentId: string): Promise<void> {
+  const { data } = await supabase.from('attachments').select('storage_path, record_id').eq('id', attachmentId).maybeSingle();
+  if (!data || data.record_id) return; // already linked to a record: keep it
+  await supabase.from('attachments').delete().eq('id', attachmentId);
+  await supabase.storage.from('receipts').remove([data.storage_path]);
+}

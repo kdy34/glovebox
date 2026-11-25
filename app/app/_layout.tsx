@@ -74,7 +74,7 @@ function RootNavigator() {
             name="(tabs)"
             options={({ route }) => ({ headerShown: false, title: tr(tabTitleKey(getFocusedRouteNameFromRoute(route))) })}
           />
-          {(['vehicle/new', 'vehicle/[id]/index', 'vehicle/[id]/edit', 'record/new', 'record/[id]', 'odometer/new'] as const).map((name) => (
+          {(['vehicle/new', 'vehicle/[id]/index', 'vehicle/[id]/edit', 'record/new', 'record/[id]', 'odometer/new', 'scan/index', 'scan/review'] as const).map((name) => (
             <Stack.Screen key={name} name={name} options={{ title: tr(STACK_TITLES[name]) }} />
           ))}
         </Stack.Protected>
