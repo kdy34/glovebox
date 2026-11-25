@@ -247,7 +247,7 @@ auth.users 1─* usage_counters ; 1─1 entitlements
 
 - Every user-owned table has RLS enabled.
 - **select / insert / update / delete** for `authenticated` all use `using (user_id = auth.uid())` and `with check (user_id = auth.uid())`.
-- Child tables add an ownership check on the parent in `with check`. For example, on `service_records` the check is `exists (select 1 from vehicles v where v.id = vehicle_id and v.user_id = auth.uid())`. This stops a user from attaching a row to another user's vehicle.
+- Child tables add an ownership check on the parent in `with check`. For example, on `service_records` the check is `exists (select 1 from vehicles v where v.id = vehicle_id and v.user_id = auth.uid())`. This stops a user from attaching a row to another user's vehicle. `service_records` also requires `extraction_id is null or owns_extraction(extraction_id)` (T106), because FK checks bypass RLS.
 - `receipt_extractions`, `usage_counters` and `entitlements`: `select` only for clients. The one exception is `receipt_extractions.corrected_fields`, which the client may update through a column-level grant.
 - **Storage** (`receipts`, `vehicle-photos`) is private. Policy: `bucket_id = '<b>' and (storage.foldername(name))[1] = auth.uid()::text` for select, insert, update and delete.
 

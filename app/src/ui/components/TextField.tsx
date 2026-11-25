@@ -36,7 +36,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
           {
             minHeight: 48,
             color: t.colors.text,
-            backgroundColor: flagged ? (t.dark ? '#2A2410' : '#FFF8E6') : t.colors.surface,
+            backgroundColor: flagged ? t.colors.flaggedBg : t.colors.surface,
             borderWidth: flagged || error ? 2 : 1,
             borderColor,
             borderRadius: t.radius.md,
