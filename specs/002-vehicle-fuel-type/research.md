@@ -21,6 +21,7 @@
   - The assumption in spec.md holds: all three fields are present. Empty fields come back as `""`.
   - Plug-in hybrids report `FuelTypePrimary = Electric`. `ElectrificationLevel` must be checked first, as the table does; otherwise the Volt would be `electric` and lose its oil change.
   - "PHEV" contains the letters "HEV". Matching uses whole tokens (`\bPHEV\b`, `\bHEV\b`), not substrings.
+  - Analysis A1 (decided 2026-11-25): `Primary = Electric` with a Gasoline/Diesel secondary and no level → `plug_in_hybrid`.
   - No live sample was found for FCEV, CNG/LPG, "Electric" without an electrification level, or "Gasoline + Electric" without a level. Those rows are covered by synthetic fixtures, labelled as such.
 
 ## R2. Where the fuel choice lives in the form
@@ -30,7 +31,8 @@
 
 ## R3. Decode vs. the user's choice
 
-- **Decision**: The form keeps a "user touched the fuel type" flag. A decode sets the fuel type only when the flag is off and the decode gave a value (`applyDecodedFuelType` in `app/src/domain/fuelType.ts`). In Edit, the flag starts off, so changing the VIN to a different car updates fuel type the same way it updates year/make/model, unless the user picked a fuel type in this session.
+- **Add form**: the form keeps a "user touched the fuel type" flag. A decode sets the fuel type only when the flag is off and the decode gave a value (`applyDecodedFuelType`).
+- **Edit form** (revised 2026-11-25, FR-007): a decode never changes a field. `vinSuggestions` lists the decoded values that are present and differ (year, make, model, trim, fuel type). The form shows them as one suggestion with a toggle per field, selected by default, and `applyVinSuggestions` changes only the fields the user keeps selected and applies. Trim is included because it is overwritten the same way; leaving it out would mean silently ignoring a decoded value, or silently overwriting.
 
 ## R4. Inspection/registration interval
 

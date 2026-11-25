@@ -19,7 +19,7 @@
 - [x] T004 [US1] Implement `app/src/domain/fuelType.ts`.
 - [x] T005 [US1] Map the fuel type in `app/src/services/vinDecoder.ts` (read `FuelTypeSecondary` and `ElectrificationLevel`; return `fuelType: FuelType | null`).
 - [x] T006 [P] [US1] Extend `app/__tests__/ui/SegmentedControl.test.tsx` for `layout="wrap"` (options wrap, radio semantics and selected fill kept), then add the layout to `app/src/ui/components/SegmentedControl.tsx`.
-- [x] T007 [US1] Add the fuel type choice to `app/app/vehicle/new.tsx` and `app/app/vehicle/[id]/edit.tsx` (FR-003), with decode prefill that never overrides a touched value (AS1–AS3), saved through the existing outbox path (AS4). Edit shows the FR-006 notice. Strings in `app/src/i18n/en.json`.
+- [x] T007 [US1] Add the fuel type choice to `app/app/vehicle/new.tsx` and `app/app/vehicle/[id]/edit.tsx` (FR-003), with decode prefill that never overrides a touched value (AS1–AS3), saved through the existing outbox path (AS5). Edit shows the FR-006 notice (AS7). Strings in `app/src/i18n/en.json`.
 - [x] T008 [P] [US1] Extend `supabase/functions/export-data/index.test.ts` to expect `fuel_type` in `csv/vehicles.csv` and `data.json`, then add the column in `supabase/functions/export-data/handler.ts` (FR-005).
 
 ## Phase 3: User Story 2 — Starter reminders fit the car (P1)
@@ -32,6 +32,13 @@
 - [x] T011 Run all gates (typecheck, lint, domain + UI tests, SQL tests, function tests). Update 001 `data-model.md` (vehicles table) and `CLAUDE.md` status.
 - [ ] T012 [US1] Live check in the simulator: decode the 2009 Prius VIN → the form shows **Hybrid** (SC-001, second half). Partly done 2026-11-25: the real `decodeVin` against live vPIC returns `hybrid` for the 2009 Prius, `electric` for a Tesla Model 3 and `plug_in_hybrid` for a Volt. The in-app simulator check is still open.
 
+## Phase 5: Decisions of 2026-11-25 (A1, Edit suggestion)
+
+- [ ] T013 [US1] Add the A1 row to the fixtures and `app/__tests__/domain/fuelType.test.ts` (`Primary = Electric` + `Secondary = Gasoline`/`Diesel`, no level → `plug_in_hybrid`; `Primary = Electric` alone stays `electric`), then to `fuelTypeFromVpic` in `app/src/domain/fuelType.ts` (FR-002).
+- [ ] T014 [US1] Write `app/__tests__/domain/vinSuggestion.test.ts`: `vinSuggestions(current, decoded)` lists only present, differing fields (year, make, model, trim, fuel type) in a fixed order; `applyVinSuggestions(current, suggestions, accepted)` changes only accepted fields; nothing accepted → unchanged (FR-007, AS4).
+- [ ] T015 [US1] Implement `app/src/domain/vinSuggestion.ts`. In `app/app/vehicle/[id]/edit.tsx`, a VIN decode no longer sets fields; it shows a suggestion card (one toggle per field, current → decoded, Apply / Dismiss). Strings in `app/src/i18n/en.json`. The Add form is unchanged.
+- [ ] T016 Gates (typecheck, lint, tests). 001 T064 gets the "notice only for cars with rules" note.
+
 ---
 
 ## Dependencies
@@ -39,4 +46,5 @@
 - T001 → T002 → T007, T008 (the column must exist).
 - T003 → T004 → T005 → T007. T006 → T007.
 - T009 → T010. US2 is independent of US1's UI.
+- T013 and T014 → T015 → T016.
 - 001 T061 builds the reminder engine on `genericRules.ts`; 001 T064 (rules screen) reads `genericStarterSet(vehicle.fuel_type)`.

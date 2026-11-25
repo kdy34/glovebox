@@ -16,6 +16,9 @@ Glovebox suggests generic maintenance rules (001 FR-019, research R7). Today it 
 - Q: Which fuel types get the full starter set? → A: Gasoline, diesel, hybrid, plug-in hybrid, flex and other all get the full R7 set.
 - Q: What stays for electric cars? → A: Everything except oil change, engine air filter and coolant check. The 12 V battery check and tire rotation stay.
 - Q: What happens to existing rules when the fuel type changes? → A: Nothing. Rules are the user's data and are never changed or deleted. When the type changes **to** electric, the Edit vehicle form shows a one-line notice: "Some reminders may not apply to electric cars — review them" (FR-006). No automatic deletion.
+- Q (analysis A1): A car reports `FuelTypePrimary = Electric` with a Gasoline or Diesel secondary fuel but no electrification level. What is it? → A: `plug_in_hybrid` (it has an engine). Added to the FR-002 table.
+- Q: In Edit vehicle, may a VIN decode overwrite saved values? → A: No, never silently. The decoded values that differ are shown as a suggestion ("Apply?"), and only the fields the user confirms change (FR-007).
+- Q: Should the electric notice depend on the car having rules? → A: Not now. Once the rules screen exists (001 T064), show it only for cars that have rules.
 - Requirement and success-criterion IDs are local to this feature (FR-001…, SC-001…). References to 001 keep the `001` prefix.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -29,10 +32,11 @@ When a user adds a car by VIN, Glovebox fills in the fuel type along with year, 
 **Acceptance Scenarios**:
 1. **Given** the Add vehicle form, **When** a VIN decodes, **Then** the fuel type is prefilled from NHTSA's `FuelTypePrimary` and `ElectrificationLevel` (mapping below) and stays editable.
 2. **Given** the VIN decode has no usable fuel data, or there is no VIN, **When** the form opens, **Then** the fuel type is **Gasoline**.
-3. **Given** the user changed the fuel type by hand, **When** they then edit the VIN and it decodes again, **Then** the user's choice is kept (a decode never overwrites a value the user set).
-4. **Given** an existing vehicle, **When** the user opens Edit vehicle, **Then** they can change the fuel type, and the change is saved (also offline, through the outbox).
-5. **Given** vehicles that existed before this feature, **When** the migration runs, **Then** each has fuel type **Gasoline**, and the user can correct it.
-6. **Given** an existing vehicle whose fuel type is not Electric, **When** the user selects Electric in Edit vehicle, **Then** a one-line notice reads "Some reminders may not apply to electric cars — review them", and no rule is changed or deleted (on save or otherwise).
+3. **Given** the Add vehicle form and the user changed the fuel type by hand, **When** they then edit the VIN and it decodes again, **Then** the user's choice is kept (a decode never overwrites a value the user set).
+4. **Given** Edit vehicle for an existing car, **When** the user changes the VIN and it decodes, **Then** no field changes by itself: the decoded year, make, model, trim and fuel type that differ from the form are listed as a suggestion with **Apply** and **Dismiss**, each field can be deselected, and only the confirmed fields change (FR-007).
+5. **Given** an existing vehicle, **When** the user opens Edit vehicle, **Then** they can change the fuel type, and the change is saved (also offline, through the outbox).
+6. **Given** vehicles that existed before this feature, **When** the migration runs, **Then** each has fuel type **Gasoline**, and the user can correct it.
+7. **Given** an existing vehicle whose fuel type is not Electric, **When** the user selects Electric in Edit vehicle, **Then** a one-line notice reads "Some reminders may not apply to electric cars — review them", and no rule is changed or deleted (on save or otherwise).
 
 ### User Story 2 — Starter reminders fit the car (Priority: P1)
 
@@ -63,6 +67,7 @@ The generic starter set of maintenance rules leaves out items that don't apply t
   | `ElectrificationLevel` contains "PHEV" | `plug_in_hybrid` |
   | `ElectrificationLevel` contains "HEV" (mild, strong, unknown level) | `hybrid` |
   | `ElectrificationLevel` contains "FCEV" | `other` |
+  | `FuelTypePrimary` = Electric and `FuelTypeSecondary` = Gasoline or Diesel | `plug_in_hybrid` |
   | `FuelTypePrimary` = Electric | `electric` |
   | `FuelTypePrimary` = Gasoline and `FuelTypeSecondary` = Electric | `hybrid` |
   | `FuelTypePrimary` = Diesel | `diesel` |
@@ -74,7 +79,8 @@ The generic starter set of maintenance rules leaves out items that don't apply t
 - **FR-003**: The Add and Edit vehicle forms MUST show the fuel type as an editable single choice with plain-language labels: Gasoline, Diesel, Hybrid, Plug-in hybrid, Electric, Flex fuel, Other.
 - **FR-004**: The generic starter set MUST exclude oil change, engine air filter and coolant check for `electric` vehicles, and include the full R7 set for every other fuel type. Each generic rule keeps its "generic" label.
 - **FR-005**: The data export MUST include the fuel type (vehicles CSV and JSON), per constitution I.
-- **FR-006**: Changing a vehicle's fuel type MUST NOT change or delete any of its maintenance rules. When the Edit vehicle form's fuel type is changed from a non-electric type to `electric`, the form MUST show the one-line notice "Some reminders may not apply to electric cars — review them".
+- **FR-006**: Changing a vehicle's fuel type MUST NOT change or delete any of its maintenance rules. When the Edit vehicle form's fuel type is changed from a non-electric type to `electric`, the form MUST show the one-line notice "Some reminders may not apply to electric cars — review them". (Once 001 T064 exists, the notice is shown only for cars that have rules.)
+- **FR-007**: In Edit vehicle, a VIN decode MUST NOT change any field directly. The decoded year, make, model, trim and fuel type that are present and differ from the form's current values are shown as one suggestion ("Apply?"), one line per field (current → decoded), each selected by default and individually deselectable. **Apply** changes only the selected fields; **Dismiss** changes nothing. Nothing is saved until the user taps Save. The Add form keeps the prefill of US1 AS1–AS3.
 
 ### Key entities
 - **Vehicle** (001): gains `fuel_type`.

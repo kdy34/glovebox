@@ -26,7 +26,8 @@ Same stack as 001 (Expo SDK 57, Supabase, `node:test` domain tests, Jest UI test
 
 - **Database**: `supabase/migrations/20261125000001_vehicle_fuel_type.sql` (see data-model.md). Applied locally with `supabase migration up` (not `db reset`, which would wipe local dev data). Types regenerated into `app/src/data/types.ts`.
 - **Domain** (`app/src/domain/`, pure TS):
-  - `fuelType.ts`: `FUEL_TYPES`, `FuelType`, `DEFAULT_FUEL_TYPE`, `parseFuelType` (string → `FuelType`, unknown → `gasoline`), `fuelTypeFromVpic({ primary, secondary, electrification })` (FR-002 table), `applyDecodedFuelType(current, decoded, userTouched)` (spec AS3), `showsElectricNotice(saved, selected)` (FR-006).
+  - `fuelType.ts`: `FUEL_TYPES`, `FuelType`, `DEFAULT_FUEL_TYPE`, `parseFuelType` (string → `FuelType`, unknown → `gasoline`), `fuelTypeFromVpic({ primary, secondary, electrification })` (FR-002 table), `applyDecodedFuelType(current, decoded, userTouched)` (spec AS3, Add form), `showsElectricNotice(saved, selected)` (FR-006).
+  - `vinSuggestion.ts`: `vinSuggestions(current, decoded)` and `applyVinSuggestions(current, suggestions, accepted)` for the Edit form (FR-007).
   - `genericRules.ts`: `GENERIC_RULES` (R7) and `genericStarterSet(fuelType)` (FR-004).
 - **Service**: `app/src/services/vinDecoder.ts` reads `FuelTypeSecondary` and `ElectrificationLevel` and returns `fuelType: FuelType | null` from `fuelTypeFromVpic`.
 - **UI**: `SegmentedControl` gets `layout?: 'row' | 'wrap'`. Add/Edit vehicle forms show "Fuel type" (FR-003). Edit shows the FR-006 notice below the choice. All strings in `src/i18n/en.json` (`vehicle.fuelTypeLabel`, `vehicle.fuel.*`, `vehicle.electricNotice`, `rules.generic.*`).
