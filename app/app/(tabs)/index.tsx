@@ -3,30 +3,38 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useVehicles } from '@/data/queries';
+import { useRecords, useVehicles } from '@/data/queries';
+import type { VehicleRow } from '@/data/types';
+import { lastServiceDate, vehicleCardText } from '@/domain/vehicleCard';
 import { Button, Card, EmptyState, Text } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 
-function VehicleCard({ vehicle }: { vehicle: { id: string; nickname: string | null; year: number; make: string; model: string; status: string; odometer_unit: string } }) {
+function formatServiceDate(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y!, m! - 1, d!).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function VehicleCard({ vehicle }: { vehicle: VehicleRow }) {
   const t = useTheme();
-  const displayName = vehicle.nickname ?? `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
+  const { t: tr } = useTranslation();
+  const { data: records } = useRecords(vehicle.id);
+  // T104: the subtitle never repeats the title.
+  const { title, subtitle } = vehicleCardText(vehicle, lastServiceDate(records));
+  const subtitleText =
+    subtitle === null ? null
+      : subtitle.kind === 'text' ? subtitle.text
+        : subtitle.kind === 'lastService' ? tr('garage.lastService', { date: formatServiceDate(subtitle.date) })
+          : tr('garage.noService');
   return (
     <Card
       onPress={() => router.push(`/vehicle/${vehicle.id}`)}
-      accessibilityLabel={displayName}
+      accessibilityLabel={subtitleText ? `${title}, ${subtitleText}` : title}
     >
       <View style={{ gap: t.spacing.sm }}>
-        <Text variant="headline">{displayName}</Text>
-        {!vehicle.nickname && (
-          <Text variant="footnote" color="textMuted">
-            {vehicle.year} {vehicle.make} {vehicle.model}
-          </Text>
-        )}
-        {vehicle.nickname && (
-          <Text variant="footnote" color="textMuted">
-            {vehicle.year} {vehicle.make} {vehicle.model}
-          </Text>
-        )}
+        <Text variant="headline">{title}</Text>
+        {subtitleText ? (
+          <Text variant="footnote" color="textMuted">{subtitleText}</Text>
+        ) : null}
       </View>
     </Card>
   );
