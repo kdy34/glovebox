@@ -22,7 +22,7 @@ const TRICKY = 'Big "Red", the\nPrius';
 
 async function seed(user: TestUser, make: string) {
   const vehicleId = await addVehicle(user, make);
-  await user.db.from('vehicles').update({ nickname: TRICKY }).eq('id', vehicleId);
+  await user.db.from('vehicles').update({ nickname: TRICKY, fuel_type: 'hybrid' }).eq('id', vehicleId);
   const saved = await user.db.rpc('save_record', {
     p_record: {
       id: crypto.randomUUID(),
@@ -79,6 +79,7 @@ Deno.test("export-data: ZIP has data.json, CSVs and files — only the caller's"
       assert(Array.isArray(data.tables[t]), `data.json has ${t}`);
     }
     assertEquals(data.tables.vehicles.map((v: { id: string }) => v.id), [seededA.vehicleId]);
+    assertEquals(data.tables.vehicles[0].fuel_type, 'hybrid', 'data.json has the fuel type (002 FR-005)');
     assertEquals(data.tables.service_records.length, 1);
     assertEquals(data.tables.service_records[0].title, 'Oil change at Toyota');
     assertEquals(data.tables.profiles.map((p: { id: string }) => p.id), [a.id]);
@@ -91,6 +92,10 @@ Deno.test("export-data: ZIP has data.json, CSVs and files — only the caller's"
     }
     const vehiclesCsv = await zip.file(`${ROOT}/csv/vehicles.csv`)!.async('string');
     assertStringIncludes(vehiclesCsv, '"Big ""Red"", the\nPrius"', 'commas, quotes and newlines are escaped');
+    const vehicleHeader = vehiclesCsv.split('\r\n')[0]!.split(',');
+    const fuelCol = vehicleHeader.indexOf('fuel_type');
+    assert(fuelCol >= 0, 'vehicles.csv has a fuel_type column (002 FR-005)');
+    assertStringIncludes(vehiclesCsv, ',hybrid,', 'vehicles.csv has the fuel type value');
     const recordsCsv = await zip.file(`${ROOT}/csv/records.csv`)!.async('string');
     assertEquals(recordsCsv.trim().split('\r\n').length, 2, 'header + one record');
 

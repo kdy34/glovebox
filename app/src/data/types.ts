@@ -221,14 +221,14 @@ isOneToOne: false
                   ]
                 },"vehicles": {
                   Row: {
-                    "archived_at": string | null,"created_at": string,"id": string,"make": string,"model": string,"nickname": string | null,"odometer_unit": string,"photo_path": string | null,"status": string,"trim": string | null,"updated_at": string,"user_id": string,"vin": string | null,"year": number
+                    "archived_at": string | null,"created_at": string,"fuel_type": string,"id": string,"make": string,"model": string,"nickname": string | null,"odometer_unit": string,"photo_path": string | null,"status": string,"trim": string | null,"updated_at": string,"user_id": string,"vin": string | null,"year": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"make": string,"model": string,"nickname"?: string | null,"odometer_unit"?: string,"photo_path"?: string | null,"status"?: string,"trim"?: string | null,"updated_at"?: string,"user_id"?: string,"vin"?: string | null,"year": number
+                    "archived_at"?: string | null,"created_at"?: string,"fuel_type"?: string,"id"?: string,"make": string,"model": string,"nickname"?: string | null,"odometer_unit"?: string,"photo_path"?: string | null,"status"?: string,"trim"?: string | null,"updated_at"?: string,"user_id"?: string,"vin"?: string | null,"year": number
                   }
                   Update: {
-                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"make"?: string,"model"?: string,"nickname"?: string | null,"odometer_unit"?: string,"photo_path"?: string | null,"status"?: string,"trim"?: string | null,"updated_at"?: string,"user_id"?: string,"vin"?: string | null,"year"?: number
+                    "archived_at"?: string | null,"created_at"?: string,"fuel_type"?: string,"id"?: string,"make"?: string,"model"?: string,"nickname"?: string | null,"odometer_unit"?: string,"photo_path"?: string | null,"status"?: string,"trim"?: string | null,"updated_at"?: string,"user_id"?: string,"vin"?: string | null,"year"?: number
                   }
                   Relationships: [
                     

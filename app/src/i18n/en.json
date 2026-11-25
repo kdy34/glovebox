@@ -91,6 +91,17 @@
     "unitLabel": "Odometer unit",
     "mi": "Miles",
     "km": "Kilometers",
+    "fuelTypeLabel": "Fuel type",
+    "fuel": {
+      "gasoline": "Gasoline",
+      "diesel": "Diesel",
+      "hybrid": "Hybrid",
+      "plug_in_hybrid": "Plug-in hybrid",
+      "electric": "Electric",
+      "flex": "Flex fuel",
+      "other": "Other"
+    },
+    "electricNotice": "Some reminders may not apply to electric cars — review them",
     "photoLabel": "Photo (optional)",
     "addPhoto": "Add photo",
     "changePhoto": "Change photo",
@@ -138,6 +149,20 @@
     "rollbackOverride": "Save anyway",
     "jumpWarning": "This reading seems unusually high. Please double-check.",
     "saveError": "Could not save reading. Please try again."
+  },
+  "rules": {
+    "genericLabel": "Generic — check your owner's manual",
+    "generic": {
+      "oil_change": "Oil change",
+      "tire_rotation": "Tire rotation",
+      "brake_inspection": "Brake inspection",
+      "engine_air_filter": "Engine air filter",
+      "cabin_filter": "Cabin air filter",
+      "coolant_check": "Coolant check",
+      "battery_check": "Battery check",
+      "wipers": "Wiper blades",
+      "inspection_registration": "Inspection / registration"
+    }
   },
   "sync": {
     "offline": "Offline — changes saved locally",

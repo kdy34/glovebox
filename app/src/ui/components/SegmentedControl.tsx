@@ -1,5 +1,6 @@
 // T103a — a labelled single-choice selector (e.g. Miles / Kilometers). The selected option is a
 // filled navy (`selectedBg`) with `onSelected` text; that pair is in textPairs and contrast-tested.
+// `layout="wrap"` (002 T006) wraps the options onto several rows, for longer lists like fuel type.
 import * as Haptics from 'expo-haptics';
 import { Pressable, View } from 'react-native';
 import { useTheme } from '../theme';
@@ -10,10 +11,12 @@ interface Props<T extends string> {
   value: T;
   options: readonly { value: T; label: string }[];
   onChange: (value: T) => void;
+  layout?: 'row' | 'wrap';
 }
 
-export function SegmentedControl<T extends string>({ label, value, options, onChange }: Props<T>) {
+export function SegmentedControl<T extends string>({ label, value, options, onChange, layout = 'row' }: Props<T>) {
   const t = useTheme();
+  const wrap = layout === 'wrap';
   return (
     <View>
       {label ? (
@@ -22,7 +25,7 @@ export function SegmentedControl<T extends string>({ label, value, options, onCh
       <View
         accessibilityRole="radiogroup"
         accessibilityLabel={label}
-        style={{ flexDirection: 'row', backgroundColor: t.colors.surfaceAlt, borderRadius: t.radius.md, padding: t.spacing.xxs, gap: t.spacing.xxs }}
+        style={{ flexDirection: 'row', ...(wrap ? { flexWrap: 'wrap' as const } : null), backgroundColor: t.colors.surfaceAlt, borderRadius: t.radius.md, padding: t.spacing.xxs, gap: t.spacing.xxs }}
       >
         {options.map((o) => {
           const selected = o.value === value;
@@ -38,7 +41,7 @@ export function SegmentedControl<T extends string>({ label, value, options, onCh
                 onChange(o.value);
               }}
               style={{
-                flex: 1,
+                ...(wrap ? { flexGrow: 1, flexBasis: '30%' as const, paddingHorizontal: t.spacing.sm } : { flex: 1 }),
                 minHeight: 44,
                 borderRadius: t.radius.sm,
                 alignItems: 'center',

@@ -1,6 +1,7 @@
 // NHTSA vPIC VIN decoder (FR-006). Free, no key needed.
 // Timeout: 8 s. Falls back gracefully (returns null) if unavailable.
 import { formatMake } from '@/domain/make';
+import { fuelTypeFromVpic, type FuelType } from '@/domain/fuelType';
 
 const VPIC_BASE = 'https://vpic.nhtsa.dot.gov/api/vehicles/decodevinvaluesextended';
 const TIMEOUT_MS = 8_000;
@@ -13,7 +14,7 @@ export interface VinDecodeResult {
   bodyClass: string | null;
   driveType: string | null;
   engineCylinders: string | null;
-  fuelType: string | null;
+  fuelType: FuelType | null; // 002 FR-002
 }
 
 function pickFirst(value: string | null | undefined): string | null {
@@ -41,6 +42,8 @@ export async function decodeVin(vin: string): Promise<VinDecodeResult | null> {
         DriveType?: string;
         EngineCylinders?: string;
         FuelTypePrimary?: string;
+        FuelTypeSecondary?: string;
+        ElectrificationLevel?: string;
         ErrorCode?: string;
       }[];
     };
@@ -60,7 +63,11 @@ export async function decodeVin(vin: string): Promise<VinDecodeResult | null> {
       bodyClass: pickFirst(r.BodyClass),
       driveType: pickFirst(r.DriveType),
       engineCylinders: pickFirst(r.EngineCylinders),
-      fuelType: pickFirst(r.FuelTypePrimary),
+      fuelType: fuelTypeFromVpic({
+        primary: r.FuelTypePrimary,
+        secondary: r.FuelTypeSecondary,
+        electrification: r.ElectrificationLevel,
+      }),
     };
   } catch {
     return null; // network error, timeout, or parse error — degrade gracefully

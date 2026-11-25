@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { normalizeVin, validateVin } from '@/domain/vin';
 import { decodeVin } from '@/services/vinDecoder';
+import { FUEL_TYPES, DEFAULT_FUEL_TYPE, applyDecodedFuelType, type FuelType } from '@/domain/fuelType';
 import { useSaveVehicle } from '@/data/queries';
 import { Button, Screen, TextField, SegmentedControl } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
@@ -24,6 +25,8 @@ export default function NewVehicle() {
   const [trim, setTrim] = useState('');
   const [nickname, setNickname] = useState('');
   const [unit, setUnit] = useState<UnitOption>('mi');
+  const [fuel, setFuel] = useState<FuelType>(DEFAULT_FUEL_TYPE);
+  const [fuelTouched, setFuelTouched] = useState(false); // 002 AS3: a decode never overrides the user's choice
   const [decoding, setDecoding] = useState(false);
   const [vinError, setVinError] = useState('');
 
@@ -49,11 +52,12 @@ export default function NewVehicle() {
         if (result.make) setMake(result.make);
         if (result.model) setModel(result.model);
         if (result.trim) setTrim(result.trim);
+        setFuel((current) => applyDecodedFuelType(current, result.fuelType, fuelTouched));
       }
     } finally {
       setDecoding(false);
     }
-  }, [vin]);
+  }, [vin, fuelTouched]);
 
   const handleSave = useCallback(async () => {
     if (!year || !make || !model) {
@@ -75,13 +79,14 @@ export default function NewVehicle() {
         vin: vin ? normalizeVin(vin) : null,
         status: 'active',
         odometer_unit: unit,
+        fuel_type: fuel,
         photo_path: null,
       });
       router.replace(`/vehicle/${id}`);
     } catch (err) {
       Alert.alert(tr('common.error'), reportSaveError('vehicle.create', err, tr('vehicle.saveError')));
     }
-  }, [year, make, model, trim, nickname, vin, unit, save, tr]);
+  }, [year, make, model, trim, nickname, vin, unit, fuel, save, tr]);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -151,6 +156,14 @@ export default function NewVehicle() {
           value={unit}
           onChange={setUnit}
           options={[{ value: 'mi', label: tr('vehicle.mi') }, { value: 'km', label: tr('vehicle.km') }]}
+        />
+
+        <SegmentedControl
+          label={tr('vehicle.fuelTypeLabel')}
+          layout="wrap"
+          value={fuel}
+          onChange={(v) => { setFuel(v); setFuelTouched(true); }}
+          options={FUEL_TYPES.map((f) => ({ value: f, label: tr(`vehicle.fuel.${f}`) }))}
         />
 
         <Button

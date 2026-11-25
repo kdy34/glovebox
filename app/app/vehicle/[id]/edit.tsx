@@ -5,8 +5,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { normalizeVin, validateVin } from '@/domain/vin';
 import { decodeVin } from '@/services/vinDecoder';
+import { FUEL_TYPES, DEFAULT_FUEL_TYPE, applyDecodedFuelType, parseFuelType, showsElectricNotice, type FuelType } from '@/domain/fuelType';
 import { useVehicle, useSaveVehicle, useArchiveVehicle, useDeleteVehicle } from '@/data/queries';
-import { Button, Divider, Screen, TextField, SegmentedControl } from '@/ui/components';
+import { Button, Divider, Screen, TextField, SegmentedControl, Text } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 import { reportSaveError } from '@/services/saveError';
 
@@ -26,6 +27,8 @@ export default function EditVehicle() {
   const [trim, setTrim] = useState('');
   const [nickname, setNickname] = useState('');
   const [unit, setUnit] = useState<'mi' | 'km'>('mi');
+  const [fuel, setFuel] = useState<FuelType>(DEFAULT_FUEL_TYPE);
+  const [fuelTouched, setFuelTouched] = useState(false); // 002 AS3: a decode never overrides the user's choice
   const [decoding, setDecoding] = useState(false);
   const [vinError, setVinError] = useState('');
 
@@ -39,6 +42,7 @@ export default function EditVehicle() {
     setTrim(vehicle.trim ?? '');
     setNickname(vehicle.nickname ?? '');
     setUnit(vehicle.odometer_unit as 'mi' | 'km');
+    setFuel(parseFuelType(vehicle.fuel_type));
   }, [vehicle]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -57,11 +61,12 @@ export default function EditVehicle() {
         if (result.make) setMake(result.make);
         if (result.model) setModel(result.model);
         if (result.trim) setTrim(result.trim);
+        setFuel((current) => applyDecodedFuelType(current, result.fuelType, fuelTouched));
       }
     } finally {
       setDecoding(false);
     }
-  }, [vin, vehicle?.vin]);
+  }, [vin, vehicle?.vin, fuelTouched]);
 
   const handleSave = useCallback(async () => {
     if (!year || !make || !model || !id) return;
@@ -78,13 +83,14 @@ export default function EditVehicle() {
         vin: vin ? normalizeVin(vin) : null,
         status: vehicle?.status ?? 'active',
         odometer_unit: unit,
+        fuel_type: fuel,
         photo_path: vehicle?.photo_path ?? null,
       });
       router.back();
     } catch (err) {
       Alert.alert(tr('common.error'), reportSaveError('vehicle.update', err, tr('vehicle.saveError')));
     }
-  }, [id, year, make, model, trim, nickname, vin, unit, vehicle, save, tr]);
+  }, [id, year, make, model, trim, nickname, vin, unit, fuel, vehicle, save, tr]);
 
   const handleArchive = () => {
     Alert.alert(
@@ -189,6 +195,18 @@ export default function EditVehicle() {
           onChange={setUnit}
           options={[{ value: 'mi', label: tr('vehicle.mi') }, { value: 'km', label: tr('vehicle.km') }]}
         />
+
+        <SegmentedControl
+          label={tr('vehicle.fuelTypeLabel')}
+          layout="wrap"
+          value={fuel}
+          onChange={(v) => { setFuel(v); setFuelTouched(true); }}
+          options={FUEL_TYPES.map((f) => ({ value: f, label: tr(`vehicle.fuel.${f}`) }))}
+        />
+
+        {vehicle && showsElectricNotice(parseFuelType(vehicle.fuel_type), fuel) ? (
+          <Text variant="footnote" color="textMuted" accessibilityLiveRegion="polite">{tr('vehicle.electricNotice')}</Text>
+        ) : null}
 
         <Button
           title={tr('common.save')}

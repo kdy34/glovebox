@@ -43,7 +43,7 @@ const TABLES = [
 const CSV: Record<string, { table: (typeof TABLES)[number]; columns: string[] }> = {
   vehicles: {
     table: 'vehicles',
-    columns: ['id', 'nickname', 'year', 'make', 'model', 'trim', 'vin', 'odometer_unit', 'status', 'archived_at', 'created_at'],
+    columns: ['id', 'nickname', 'year', 'make', 'model', 'trim', 'vin', 'odometer_unit', 'fuel_type', 'status', 'archived_at', 'created_at'],
   },
   records: {
     table: 'service_records',

@@ -67,6 +67,7 @@ One row per user, created by a trigger on `auth.users` insert.
 | trim | text | ≤ 60, nullable |
 | vin | text | nullable, 17 chars `[A-HJ-NPR-Z0-9]`, unique per user (partial index where not null) |
 | odometer_unit | text | default `mi` |
+| fuel_type | text | NOT NULL, default `gasoline`; `gasoline`, `diesel`, `hybrid`, `plug_in_hybrid`, `electric`, `flex`, `other` (added by `specs/002-vehicle-fuel-type`) |
 | photo_path | text | storage key in `vehicle-photos`, nullable |
 | status | text | default `active` |
 | archived_at | timestamptz | set when archived |
