@@ -31,6 +31,10 @@ export const VPIC_FUEL_FIXTURES: VpicFuelFixture[] = [
   // FuelTypePrimary rows (no ElectrificationLevel)
   { name: 'Electric without a level', origin: 'synthetic', expected: 'electric',
     result: { FuelTypePrimary: 'Electric', FuelTypeSecondary: '', ElectrificationLevel: '' } },
+  { name: 'Electric + Gasoline without a level (A1)', origin: 'synthetic', expected: 'plug_in_hybrid',
+    result: { FuelTypePrimary: 'Electric', FuelTypeSecondary: 'Gasoline', ElectrificationLevel: '' } },
+  { name: 'Electric + Diesel without a level (A1)', origin: 'synthetic', expected: 'plug_in_hybrid',
+    result: { FuelTypePrimary: 'Electric', FuelTypeSecondary: 'Diesel', ElectrificationLevel: '' } },
   { name: 'Gasoline + Electric without a level', origin: 'synthetic', expected: 'hybrid',
     result: { FuelTypePrimary: 'Gasoline', FuelTypeSecondary: 'Electric', ElectrificationLevel: '' } },
   { name: '2013 Volkswagen Jetta TDI', origin: 'recorded', expected: 'diesel',

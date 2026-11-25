@@ -111,7 +111,21 @@
     "deleteTitle": "Delete vehicle",
     "deleteBody": "This will permanently delete the vehicle and all its records, photos and reminders. This cannot be undone.",
     "deleteConfirm": "Delete permanently",
-    "saveError": "Could not save vehicle. Please try again."
+    "saveError": "Could not save vehicle. Please try again.",
+    "suggest": {
+      "title": "The VIN shows different details. Apply?",
+      "line": "{{field}}: {{current}} → {{suggested}}",
+      "none": "none",
+      "apply": "Apply",
+      "dismiss": "Dismiss",
+      "field": {
+        "year": "Year",
+        "make": "Make",
+        "model": "Model",
+        "trim": "Trim",
+        "fuelType": "Fuel type"
+      }
+    }
   },
   "record": {
     "newTitle": "New record",

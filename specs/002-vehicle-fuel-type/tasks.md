@@ -34,10 +34,10 @@
 
 ## Phase 5: Decisions of 2026-11-25 (A1, Edit suggestion)
 
-- [ ] T013 [US1] Add the A1 row to the fixtures and `app/__tests__/domain/fuelType.test.ts` (`Primary = Electric` + `Secondary = Gasoline`/`Diesel`, no level → `plug_in_hybrid`; `Primary = Electric` alone stays `electric`), then to `fuelTypeFromVpic` in `app/src/domain/fuelType.ts` (FR-002).
-- [ ] T014 [US1] Write `app/__tests__/domain/vinSuggestion.test.ts`: `vinSuggestions(current, decoded)` lists only present, differing fields (year, make, model, trim, fuel type) in a fixed order; `applyVinSuggestions(current, suggestions, accepted)` changes only accepted fields; nothing accepted → unchanged (FR-007, AS4).
-- [ ] T015 [US1] Implement `app/src/domain/vinSuggestion.ts`. In `app/app/vehicle/[id]/edit.tsx`, a VIN decode no longer sets fields; it shows a suggestion card (one toggle per field, current → decoded, Apply / Dismiss). Strings in `app/src/i18n/en.json`. The Add form is unchanged.
-- [ ] T016 Gates (typecheck, lint, tests). 001 T064 gets the "notice only for cars with rules" note.
+- [x] T013 [US1] Add the A1 row to the fixtures and `app/__tests__/domain/fuelType.test.ts` (`Primary = Electric` + `Secondary = Gasoline`/`Diesel`, no level → `plug_in_hybrid`; `Primary = Electric` alone stays `electric`), then to `fuelTypeFromVpic` in `app/src/domain/fuelType.ts` (FR-002).
+- [x] T014 [US1] Write `app/__tests__/domain/vinSuggestion.test.ts`: `vinSuggestions(current, decoded)` lists only present, differing fields (year, make, model, trim, fuel type) in a fixed order; `applyVinSuggestions(current, suggestions, accepted)` changes only accepted fields; nothing accepted → unchanged (FR-007, AS4).
+- [x] T015 [US1] Implement `app/src/domain/vinSuggestion.ts`. In `app/app/vehicle/[id]/edit.tsx`, a VIN decode no longer sets fields; it shows a suggestion card (one toggle per field, current → decoded, Apply / Dismiss). Strings in `app/src/i18n/en.json`. The Add form is unchanged.
+- [x] T016 Gates (typecheck, lint, tests). 001 T064 gets the "notice only for cars with rules" note.
 
 ---
 

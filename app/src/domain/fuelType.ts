@@ -33,6 +33,8 @@ export function fuelTypeFromVpic({ primary, secondary, electrification }: VpicFu
 
   const p = first(primary).toLowerCase();
   const s = first(secondary).toLowerCase();
+  // A1: an engine as secondary fuel means a plug-in hybrid, even without a level.
+  if (p === 'electric' && (s === 'gasoline' || s === 'diesel')) return 'plug_in_hybrid';
   if (p === 'electric') return 'electric';
   if (p === 'gasoline' && s === 'electric') return 'hybrid';
   if (p === 'diesel') return 'diesel';

@@ -1,13 +1,15 @@
-// Edit vehicle screen (T035). Pre-fills from existing vehicle data.
+// Edit vehicle screen (T035). Pre-fills from existing vehicle data. A VIN decode only suggests
+// changes; the user confirms each field (002 FR-007).
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { normalizeVin, validateVin } from '@/domain/vin';
 import { decodeVin } from '@/services/vinDecoder';
-import { FUEL_TYPES, DEFAULT_FUEL_TYPE, applyDecodedFuelType, parseFuelType, showsElectricNotice, type FuelType } from '@/domain/fuelType';
+import { FUEL_TYPES, DEFAULT_FUEL_TYPE, parseFuelType, showsElectricNotice, type FuelType } from '@/domain/fuelType';
+import { applyVinSuggestions, vinSuggestions, type SuggestionField, type VinSuggestion } from '@/domain/vinSuggestion';
 import { useVehicle, useSaveVehicle, useArchiveVehicle, useDeleteVehicle } from '@/data/queries';
-import { Button, Divider, Screen, TextField, SegmentedControl, Text } from '@/ui/components';
+import { Button, Card, Divider, Screen, TextField, SegmentedControl, Text } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 import { reportSaveError } from '@/services/saveError';
 
@@ -28,7 +30,8 @@ export default function EditVehicle() {
   const [nickname, setNickname] = useState('');
   const [unit, setUnit] = useState<'mi' | 'km'>('mi');
   const [fuel, setFuel] = useState<FuelType>(DEFAULT_FUEL_TYPE);
-  const [fuelTouched, setFuelTouched] = useState(false); // 002 AS3: a decode never overrides the user's choice
+  const [suggestions, setSuggestions] = useState<VinSuggestion[]>([]);
+  const [accepted, setAccepted] = useState<ReadonlySet<SuggestionField>>(new Set());
   const [decoding, setDecoding] = useState(false);
   const [vinError, setVinError] = useState('');
 
@@ -57,16 +60,32 @@ export default function EditVehicle() {
     try {
       const result = await decodeVin(normalized);
       if (result) {
-        if (result.year) setYear(String(result.year));
-        if (result.make) setMake(result.make);
-        if (result.model) setModel(result.model);
-        if (result.trim) setTrim(result.trim);
-        setFuel((current) => applyDecodedFuelType(current, result.fuelType, fuelTouched));
+        // FR-007: never overwrite silently; list what differs and let the user confirm.
+        const next = vinSuggestions({ year, make, model, trim, fuelType: fuel }, result);
+        setSuggestions(next);
+        setAccepted(new Set(next.map((s) => s.field)));
       }
     } finally {
       setDecoding(false);
     }
-  }, [vin, vehicle?.vin, fuelTouched]);
+  }, [vin, vehicle?.vin, year, make, model, trim, fuel]);
+
+  const applySuggestions = useCallback(() => {
+    const next = applyVinSuggestions({ year, make, model, trim, fuelType: fuel }, suggestions, accepted);
+    setYear(next.year); setMake(next.make); setModel(next.model); setTrim(next.trim); setFuel(next.fuelType);
+    setSuggestions([]);
+  }, [year, make, model, trim, fuel, suggestions, accepted]);
+
+  const toggleAccepted = (field: SuggestionField) => {
+    setAccepted((prev) => {
+      const next = new Set(prev);
+      if (next.has(field)) next.delete(field); else next.add(field);
+      return next;
+    });
+  };
+
+  const showValue = (field: SuggestionField, value: string) =>
+    !value ? tr('vehicle.suggest.none') : field === 'fuelType' ? tr(`vehicle.fuel.${value}`) : value;
 
   const handleSave = useCallback(async () => {
     if (!year || !make || !model || !id) return;
@@ -143,6 +162,39 @@ export default function EditVehicle() {
           accessibilityLabel={tr('vehicle.vinLabel')}
         />
 
+        {suggestions.length > 0 ? (
+          <Card>
+            <View style={{ gap: t.spacing.sm }}>
+              <Text variant="headline">{tr('vehicle.suggest.title')}</Text>
+              {suggestions.map((s) => {
+                const on = accepted.has(s.field);
+                const line = tr('vehicle.suggest.line', {
+                  field: tr(`vehicle.suggest.field.${s.field}`),
+                  current: showValue(s.field, s.current),
+                  suggested: showValue(s.field, s.suggested),
+                });
+                return (
+                  <Pressable
+                    key={s.field}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}
+                    accessibilityLabel={line}
+                    onPress={() => toggleAccepted(s.field)}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.sm, minHeight: 44 }}
+                  >
+                    <Text variant="headline" color={on ? 'accentText' : 'textMuted'}>{on ? '☑' : '☐'}</Text>
+                    <Text variant="callout" style={{ flex: 1 }}>{line}</Text>
+                  </Pressable>
+                );
+              })}
+              <View style={{ flexDirection: 'row', gap: t.spacing.sm }}>
+                <Button title={tr('vehicle.suggest.dismiss')} variant="ghost" style={{ flex: 1 }} onPress={() => setSuggestions([])} />
+                <Button title={tr('vehicle.suggest.apply')} style={{ flex: 1 }} disabled={accepted.size === 0} onPress={applySuggestions} />
+              </View>
+            </View>
+          </Card>
+        ) : null}
+
         <View style={{ flexDirection: 'row', gap: t.spacing.sm }}>
           <View style={{ flex: 1 }}>
             <TextField
@@ -200,7 +252,7 @@ export default function EditVehicle() {
           label={tr('vehicle.fuelTypeLabel')}
           layout="wrap"
           value={fuel}
-          onChange={(v) => { setFuel(v); setFuelTouched(true); }}
+          onChange={setFuel}
           options={FUEL_TYPES.map((f) => ({ value: f, label: tr(`vehicle.fuel.${f}`) }))}
         />
 
