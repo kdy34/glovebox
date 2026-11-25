@@ -1,0 +1,6 @@
+# Real receipts and their answers stay on your machine: they contain shop names, addresses,
+# sometimes names, VINs and card digits. Only the README and the synthetic example are tracked.
+*
+!.gitignore
+!README.md
+!example.expected.json

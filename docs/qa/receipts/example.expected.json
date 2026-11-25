@@ -1,0 +1,13 @@
+{
+  "fields": {
+    "shop_name": "Joe's Auto Repair",
+    "performed_on": "2026-06-01",
+    "odometer": 150123,
+    "subtotal_cents": 6495,
+    "tax_cents": 312,
+    "total_cents": 6807,
+    "suggested_category": "oil_change",
+    "is_diy_purchase": false
+  },
+  "line_item_amounts_cents": [4495, 2000]
+}

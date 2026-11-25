@@ -162,7 +162,7 @@
   - flagged fields focused first, the original image on a zoomable top sheet
   - a mismatch banner and a duplicate prompt
   - on save, write `corrected_fields`
-- [ ] T058 [P] [US2] Write the golden-set evaluation script `supabase/functions/_shared/ai/eval.ts` (field accuracy, totals accuracy, latency p90), and `docs/qa/receipts/README.md` explaining how to add receipts with expected JSON.
+- [x] T058 [P] [US2] Write the golden-set evaluation script `supabase/functions/_shared/ai/eval.ts` (field accuracy, totals accuracy, latency p90), and `docs/qa/receipts/README.md` explaining how to add receipts with expected JSON.
 
 **Checkpoint**: US2 works end to end, and turning AI off falls back cleanly.
 
