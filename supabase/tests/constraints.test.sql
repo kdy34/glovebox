@@ -104,12 +104,31 @@ select tests.ok(public.consume_scan('00000000-0000-0000-0000-0000000000c1', 2), 
 select tests.ok(public.consume_scan('00000000-0000-0000-0000-0000000000c1', null), 'null limit means unlimited (Pro fair use handled by limit value)');
 reset role;
 
--- account deletion cascades everything (US6)
+-- account deletion cascades everything (US6). Count only this test user's rows: a local
+-- Supabase DB can hold dev accounts, which must not affect the result.
+create temp table c1_rows on commit drop as
+  select 'vehicles' as t, count(*) as n from public.vehicles where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'service_records', count(*) from public.service_records where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'line_items', count(*) from public.line_items where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'odometer_readings', count(*) from public.odometer_readings where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'maintenance_rules', count(*) from public.maintenance_rules where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'share_links', count(*) from public.share_links where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'usage_counters', count(*) from public.usage_counters where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'attachments', count(*) from public.attachments where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'receipt_extractions', count(*) from public.receipt_extractions where user_id = '00000000-0000-0000-0000-0000000000c1'
+  union all select 'profiles', count(*) from public.profiles where id = '00000000-0000-0000-0000-0000000000c1';
+select tests.ok((select sum(n) from c1_rows) > 0, 'the test user has rows before deletion (so the next check is not vacuous)');
 delete from auth.users where id = '00000000-0000-0000-0000-0000000000c1';
-select tests.ok((select count(*) from public.vehicles) + (select count(*) from public.service_records)
-  + (select count(*) from public.line_items) + (select count(*) from public.odometer_readings)
-  + (select count(*) from public.maintenance_rules) + (select count(*) from public.share_links)
-  + (select count(*) from public.usage_counters) + (select count(*) from public.profiles) = 0,
+select tests.ok((select count(*) from public.vehicles where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.service_records where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.line_items where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.odometer_readings where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.maintenance_rules where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.share_links where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.usage_counters where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.attachments where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.receipt_extractions where user_id = '00000000-0000-0000-0000-0000000000c1')
+  + (select count(*) from public.profiles where id = '00000000-0000-0000-0000-0000000000c1') = 0,
   'deleting the auth user removes all of their rows');
 
 rollback;
