@@ -154,8 +154,8 @@
   > - `unreadable` means `is_receipt` is true but there's no total and no line items.
   > - Not yet run: a real Gemini call (no key in this environment).
 - [x] T053 [P] [US2] Implement `app/src/domain/extraction.ts` and `app/src/domain/duplicates.ts`.
-- [ ] T054 [P] [US2] Wrap the iOS VisionKit scanner in `app/src/platform/documentScanner.ts`, with the image-picker and PDF fallback.
-- [ ] T055 [US2] Implement the receipt service (compress → sha256 → upload → attachment row → invoke the function → map errors to the manual fallback) in `app/src/services/receipts.ts`.
+- [x] T054 [P] [US2] Wrap the iOS VisionKit scanner in `app/src/platform/documentScanner.ts`, with the image-picker and PDF fallback.
+- [x] T055 [US2] Implement the receipt service (compress → sha256 → upload → attachment row → invoke the function → map errors to the manual fallback) in `app/src/services/receipts.ts`.
 - [ ] T056 [US2] Build the scan capture screen `app/app/scan/index.tsx`: pick the vehicle, scan or import, and a processing animation that is respectful of Reduce Motion.
 - [ ] T057 [US2] Build the draft review screen `app/app/scan/review.tsx`:
   - the record form pre-filled from the draft

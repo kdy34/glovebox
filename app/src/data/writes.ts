@@ -35,3 +35,18 @@ export function profileUpdate(userId: string, fields: ProfileFields): NewOutboxE
   if (fields.display_name && fields.display_name.length > 80) throw new Error('display_name is too long');
   return { id: userId, table: 'profiles', operation: 'update', payload: { ...fields } };
 }
+
+/** US2: link the receipt image to the record it became (a partial update; RLS checks ownership). */
+export function attachmentLink(attachmentId: string, recordId: string): NewOutboxEntry {
+  return { id: attachmentId, table: 'attachments', operation: 'update', payload: { record_id: recordId } };
+}
+
+/**
+ * US2 / SC-003: which draft fields the user corrected. Only `corrected_fields` may be sent:
+ * the client's grant on receipt_extractions covers that one column.
+ */
+export function extractionCorrections(extractionId: string, fields: readonly string[]): NewOutboxEntry & { payload: { corrected_fields: string[] } } {
+  // 10 draft fields + at most 60 line items
+  const corrected_fields = [...new Set(fields)].slice(0, 70);
+  return { id: extractionId, table: 'receipt_extractions', operation: 'update', payload: { corrected_fields } };
+}

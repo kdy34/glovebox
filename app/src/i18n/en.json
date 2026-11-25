@@ -242,5 +242,35 @@
     "signIn": "Sign in",
     "vehicle": "Vehicle",
     "legal": "Legal"
+  },
+  "scan": {
+    "title": "Scan receipt",
+    "vehicleLabel": "Vehicle",
+    "scan": "Scan with camera",
+    "importPhoto": "Choose a photo",
+    "importPdf": "Choose a PDF",
+    "hint": "Glovebox reads the receipt and fills in a draft. Nothing is saved until you check it and tap Save.",
+    "scannerUnavailable": "The camera scanner isn’t available on this device. Choose a photo or PDF instead.",
+    "processing": "Reading your receipt…",
+    "processingHint": "This usually takes a few seconds.",
+    "tooLarge": "That file is too large (10 MB max).",
+    "manualInstead": "Enter it manually",
+    "duplicateImageTitle": "Already saved?",
+    "duplicateImageBody": "You already saved a record with this receipt image.",
+    "openExisting": "Open that record",
+    "scanAnyway": "Scan anyway",
+    "error": {
+      "quota_exceeded": "You’ve used this month’s receipt scans. The photo is attached — enter the details below.",
+      "not_a_receipt": "This doesn’t look like a receipt. The photo is attached — enter the details below.",
+      "unreadable": "We couldn’t read this receipt. The photo is attached — enter the details below.",
+      "ai_disabled": "Receipt reading is turned off right now. The photo is attached — enter the details below.",
+      "provider_error": "Receipt reading isn’t available right now. The photo is attached — enter the details below.",
+      "timeout": "Reading the receipt took too long. The photo is attached — enter the details below.",
+      "file_too_large": "That file is too large to read (10 MB max). Enter the details below.",
+      "unsupported_type": "That file type can’t be read. Enter the details below.",
+      "attachment_not_found": "The photo couldn’t be found. Enter the details below.",
+      "unauthorized": "Your session expired. Sign in again to read receipts. Enter the details below.",
+      "network": "You’re offline, so the receipt can’t be read. Enter the details below."
+    }
   }
 }
