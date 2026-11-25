@@ -254,6 +254,10 @@ Bug: the sign-up and sign-in emails used Supabase's default templates, which sho
 
 - [x] T101 [US1] Add code-only email templates `supabase/templates/confirmation.html` (sign-up) and `supabase/templates/magic_link.html` (sign-in). Each is a short Glovebox-branded email with `{{ .Token }}` in large text and "Enter this code in the Glovebox app. It expires in 10 minutes.", with no link. Wire them in `supabase/config.toml` under `[auth.email.template.confirmation]` and `[auth.email.template.magic_link]` (subject + `content_path`). The hosted project gets the same templates through the dashboard (quickstart.md §3). Test: `supabase/functions/_shared/auth_email.test.ts` checks against local Auth + Mailpit, for a new user and then a returning user, that the email has a 6-digit code and no link or URL, and that `verifyOtp` with that code signs the user in.
 
+## Converge: simulator hand-test fixes
+
+- [x] T102 [US1] Bug (FR-005): saving a vehicle failed with "Could not save vehicle". Cause: `uuid` v4 calls `crypto.getRandomValues()`, and Hermes has no `crypto` global (confirmed in the running app: `typeof crypto === 'undefined'`), so every client-generated id threw before the write was queued. Replace `uuid` with `newId()` in `app/src/data/ids.ts` (expo-crypto `randomUUID()`) in the vehicle and odometer repositories and the record form, and remove `uuid`/`@types/uuid` from the app. Every save form's catch (vehicle add/edit, odometer, record) calls `reportSaveError` (`app/src/services/saveError.ts`): `console.error` + Sentry, with the real error appended to the alert in dev (`describeError`/`saveErrorMessage` in `app/src/domain/errors.ts`). Tests: `__tests__/data/ids.test.ts`, `__tests__/domain/errors.test.ts`. Verified in the simulator: a vehicle saved through the app's repository reached `public.vehicles`.
+
 ---
 
 ## Backlog (future specs, not part of 001)

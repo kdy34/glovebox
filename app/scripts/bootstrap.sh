@@ -20,7 +20,7 @@ npx expo install \
 npm install \
   @supabase/supabase-js react-native-url-polyfill @tanstack/react-query @tanstack/react-query-persist-client \
   @tanstack/query-async-storage-persister react-hook-form @hookform/resolvers \
-  i18next react-i18next uuid \
+  i18next react-i18next \
   react-native-document-scanner-plugin react-native-purchases \
   @sentry/react-native posthog-react-native
 
@@ -29,7 +29,7 @@ npm install \
 # `npm install` pulls the next SDK's versions and breaks peer resolution.
 npx expo install --dev jest-expo eslint-config-expo @react-native/jest-preset
 
-npm install --save-dev jest @testing-library/react-native @types/jest @types/uuid \
+npm install --save-dev jest @testing-library/react-native @types/jest \
   eslint prettier
 
 echo "✅ Dependencies installed. Commit package.json + package-lock.json."

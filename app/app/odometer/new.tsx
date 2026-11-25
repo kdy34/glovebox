@@ -8,6 +8,7 @@ import { useOdometerReadings, useSaveOdometerReading, useVehicle } from '@/data/
 import type { OdometerRow } from '@/data/types';
 import { Button, DateField, Screen, Text, TextField } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
+import { reportSaveError } from '@/services/saveError';
 
 export default function NewOdometer() {
   const { vehicleId } = useLocalSearchParams<{ vehicleId: string }>();
@@ -50,8 +51,8 @@ export default function NewOdometer() {
     try {
       await saveReading({ vehicle_id: vehicleId, value: numeric, unit: unit as 'mi' | 'km', read_on: date, source: 'manual' });
       router.back();
-    } catch {
-      Alert.alert('Error', tr('odometer.saveError'));
+    } catch (err) {
+      Alert.alert(tr('common.error'), reportSaveError('odometer', err, tr('odometer.saveError')));
     }
   }, [vehicleId, value, date, unit, readings, saveReading, tr]);
 

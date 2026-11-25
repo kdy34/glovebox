@@ -8,6 +8,7 @@ import { decodeVin } from '@/services/vinDecoder';
 import { useVehicle, useSaveVehicle, useArchiveVehicle, useDeleteVehicle } from '@/data/queries';
 import { Button, Divider, Screen, Text, TextField } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
+import { reportSaveError } from '@/services/saveError';
 
 export default function EditVehicle() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -80,8 +81,8 @@ export default function EditVehicle() {
         photo_path: vehicle?.photo_path ?? null,
       });
       router.back();
-    } catch {
-      Alert.alert('Error', tr('vehicle.saveError'));
+    } catch (err) {
+      Alert.alert(tr('common.error'), reportSaveError('vehicle.update', err, tr('vehicle.saveError')));
     }
   }, [id, year, make, model, trim, nickname, vin, unit, vehicle, save, tr]);
 

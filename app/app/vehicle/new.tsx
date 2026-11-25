@@ -8,6 +8,7 @@ import { decodeVin } from '@/services/vinDecoder';
 import { useSaveVehicle } from '@/data/queries';
 import { Button, Screen, Text, TextField } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
+import { reportSaveError } from '@/services/saveError';
 
 type UnitOption = 'mi' | 'km';
 
@@ -77,8 +78,8 @@ export default function NewVehicle() {
         photo_path: null,
       });
       router.replace(`/vehicle/${id}`);
-    } catch {
-      Alert.alert('Error', tr('vehicle.saveError'));
+    } catch (err) {
+      Alert.alert(tr('common.error'), reportSaveError('vehicle.create', err, tr('vehicle.saveError')));
     }
   }, [year, make, model, trim, nickname, vin, unit, save, tr]);
 

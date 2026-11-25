@@ -2,13 +2,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { v4 as uuid } from 'uuid';
 import { formatCents, lineAmountCents } from '@/domain/money';
 import { SERVICE_CATEGORIES, EXPENSE_CATEGORIES, categoryLabelKey, type Category, type RecordKind } from '@/domain/categories';
 import { useSaveRecord, useRecord, useLineItems, useDeleteRecord, useVehicle } from '@/data/queries';
 import { RecordSaveError, type LineItemInput, type RecordInput } from '@/data/repositories/records';
 import { Button, Card, DateField, Divider, MoneyField, Screen, Text, TextField } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
+import { reportSaveError } from '@/services/saveError';
+import { newId } from '@/data/ids';
 
 interface Props {
   vehicleId?: string;
@@ -175,7 +176,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
 
   const addItem = () => {
     setItems((prev) => [...prev, {
-      id: uuid(),
+      id: newId(),
       item_type: 'labor',
       description: '',
       quantity: 1,
@@ -190,7 +191,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
       Alert.alert('No items', 'Please add at least one line item.');
       return;
     }
-    const id = recordId ?? uuid();
+    const id = recordId ?? newId();
     const odomNum = odometer ? parseInt(odometer.replace(/,/g, ''), 10) : null;
 
     const record: RecordInput = {
@@ -227,7 +228,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
       onSaved(id);
     } catch (err) {
       // Validation / DB errors are never queued (T097): tell the user so they can fix the record.
-      Alert.alert(tr('common.error'), tr(saveErrorKey(err)));
+      Alert.alert(tr('common.error'), reportSaveError('record', err, tr(saveErrorKey(err))));
     }
   }, [vehicleId, recordId, kind, category, date, odometer, isDiy, shopName, subtotalCents, taxCents, totalCents, notes, items, save, tr, onSaved]);
 

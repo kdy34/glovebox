@@ -62,7 +62,6 @@
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^4.0.0",
-    "uuid": "^14.0.3",
     "zod": "^3.25.0"
   },
   "devDependencies": {
@@ -70,7 +69,6 @@
     "@testing-library/react-native": "^14.1.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
-    "@types/uuid": "^10.0.0",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.2",
     "jest": "^30.5.2",

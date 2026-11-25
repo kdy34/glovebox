@@ -1,5 +1,5 @@
 // Odometer repository: reads and writes odometer readings.
-import { v4 as uuid } from 'uuid';
+import { newId } from '../ids';
 import { supabase } from '../supabase';
 import { enqueue, enqueueWrite } from '../sync';
 import { odometerExclude } from '../writes';
@@ -26,7 +26,7 @@ export async function listOdometerReadings(vehicleId: string): Promise<OdometerR
 }
 
 export async function saveOdometerReading(input: OdometerInput & { id?: string }): Promise<string> {
-  const id = input.id ?? uuid();
+  const id = input.id ?? newId();
   const now = new Date().toISOString();
   const payload: Record<string, unknown> = {
     id,

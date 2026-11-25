@@ -1,5 +1,5 @@
 // Vehicle repository: wraps Supabase reads and routes writes through the outbox.
-import { v4 as uuid } from 'uuid';
+import { newId } from '../ids';
 import { supabase } from '../supabase';
 import { enqueue, enqueueWrite } from '../sync';
 import { vehicleArchive, vehicleUnarchive } from '../writes';
@@ -24,7 +24,7 @@ export async function getVehicle(id: string): Promise<VehicleRow | null> {
 }
 
 export async function saveVehicle(input: VehicleInput & { id?: string }): Promise<string> {
-  const id = input.id ?? uuid();
+  const id = input.id ?? newId();
   const now = new Date().toISOString();
   const payload = {
     ...input,
