@@ -49,6 +49,6 @@ supabase gen types typescript --local > app/src/data/types.ts
 
 ## Status
 
-- Progress lives in `specs/001-glovebox-mvp/tasks.md`, the source of truth.
-- Last checkpoint: US1, converge T096–T101, US6 (T040–T045), US2 server side (T046, T047, T050–T052).
+- Progress lives in `specs/001-glovebox-mvp/tasks.md` and `specs/002-vehicle-fuel-type/tasks.md`, the source of truth.
+- Last checkpoint: US1, converge T096–T104, US6 (T040–T045), US2 server side (T046, T047, T050–T052). 002 (vehicle fuel type) T001–T011 done; T012 (in-app simulator check) open; analysis finding A1 awaits a decision.
 - **Next:** US2 client side (T048, T049, T053–T058).
