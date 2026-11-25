@@ -1,10 +1,13 @@
 // Sign in with Apple → Supabase (research R12). iOS-only code lives in src/platform (constitution VII).
+import Constants from 'expo-constants';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 import { supabase } from '@/data/supabase';
 
 export async function isAppleSignInAvailable(): Promise<boolean> {
+  // Local unsigned builds drop the entitlement (GLOVEBOX_APPLE_SIGN_IN=false); hide the button there.
+  if (Constants.expoConfig?.ios?.usesAppleSignIn === false) return false;
   return Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync());
 }
 

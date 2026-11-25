@@ -24,7 +24,12 @@ npm install \
   react-native-document-scanner-plugin react-native-purchases \
   @sentry/react-native posthog-react-native
 
-npm install --save-dev jest jest-expo @testing-library/react-native @types/jest @types/uuid \
-  eslint eslint-config-expo prettier
+# Expo-coupled dev deps must match the SDK (jest-expo/eslint-config-expo track the
+# SDK major, @react-native/jest-preset tracks react-native). Installing them with plain
+# `npm install` pulls the next SDK's versions and breaks peer resolution.
+npx expo install --dev jest-expo eslint-config-expo @react-native/jest-preset
+
+npm install --save-dev jest @testing-library/react-native @types/jest @types/uuid \
+  eslint prettier
 
 echo "✅ Dependencies installed. Commit package.json + package-lock.json."

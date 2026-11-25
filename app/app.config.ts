@@ -1,9 +1,22 @@
 import type { ExpoConfig } from 'expo/config';
+import { withEntitlementsPlist, type ConfigPlugin } from 'expo/config-plugins';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyExpoConfig = ExpoConfig & { splash?: any };
 
 // Only EXPO_PUBLIC_* values are embedded in the binary. They are public by design
 // (Supabase URL + anon key are protected by RLS). Never put secrets here (constitution IV).
+// Sign in with Apple needs a signed build, even on the simulator. Set GLOVEBOX_APPLE_SIGN_IN=false
+// in app/.env to build an unsigned simulator dev client without an Apple Developer team; the
+// sign-in screen then only offers email codes. EAS builds don't read app/.env, so they keep it on.
+const appleSignIn = process.env.GLOVEBOX_APPLE_SIGN_IN !== 'false';
+// expo-apple-authentication is auto-applied when installed and always adds the entitlement,
+// so leaving it out of `plugins` isn't enough; strip it explicitly.
+const withoutAppleSignIn: ConfigPlugin = (c) =>
+  withEntitlementsPlist(c, (m) => {
+    delete m.modResults['com.apple.developer.applesignin'];
+    return m;
+  });
+
 const config: AnyExpoConfig = {
   name: 'Glovebox',
   slug: 'glovebox',
@@ -16,7 +29,7 @@ const config: AnyExpoConfig = {
   ios: {
     bundleIdentifier: 'app.glovebox.ios',
     supportsTablet: true,
-    usesAppleSignIn: true,
+    usesAppleSignIn: appleSignIn,
     config: { usesNonExemptEncryption: false },
     infoPlist: {
       NSCameraUsageDescription: 'Glovebox uses the camera to scan your service receipts.',
@@ -34,12 +47,19 @@ const config: AnyExpoConfig = {
     'expo-router',
     'expo-secure-store',
     'expo-sqlite',
-    'expo-apple-authentication',
+    ...(appleSignIn ? ['expo-apple-authentication'] : []),
     'expo-localization',
     'expo-web-browser',
+    'expo-status-bar',
+    'expo-splash-screen',
+    'expo-font',
+    'expo-image',
+    'expo-sharing',
+    '@react-native-community/datetimepicker',
     ['expo-notifications', { color: '#F2A900' }],
     ['expo-image-picker', { photosPermission: 'Glovebox lets you import receipt photos and add a photo of your car.' }],
     ['react-native-document-scanner-plugin', { cameraPermission: 'Glovebox uses the camera to scan your service receipts.' }],
+    './plugins/withSceneLifecycle',
     ['@sentry/react-native/expo', { organization: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT }],
   ],
   experiments: { typedRoutes: true },
@@ -54,4 +74,4 @@ const config: AnyExpoConfig = {
   },
 };
 
-export default config;
+export default appleSignIn ? config : withoutAppleSignIn(config);

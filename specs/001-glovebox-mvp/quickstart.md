@@ -52,7 +52,7 @@ SITE_ORIGIN=http://localhost:3000
 | US4 | Run `npm run seed:demo` (12 months of data) and open Insights. | Totals match `docs/qa/insights-expected.xlsx`. |
 | US5 | Generate a report and create a link. Open the link in a private browser window. Revoke it. | The PDF opens. The web view shows no email, no notes, and costs only if you turned them on. After revoking you see "No longer available". |
 | US6 | Export, then delete the account. | The ZIP contains JSON, CSV and images. After deletion, signing in again shows an empty garage and old links show "not available". |
-| US7 | Use a sandbox tester: hit the 5-scan limit → paywall → subscribe → restore on a 2nd device. Then flip `monetization_enabled` to false. | The limit lifts immediately. With the flag off, no paywall appears anywhere. |
+| US7 | Use a sandbox tester: hit the 5-scan limit → paywall → subscribe → restore on a 2nd device. Then flip `monetization_enabled` to false. | After subscribing, the Pro limits apply immediately. With the flag off, no paywall appears anywhere and everyone, subscribers included, gets the `free` limits (1 vehicle, 5 scans/month, no share links or insights), enforced on the client and the server ([contracts/app-config.md](contracts/app-config.md)). |
 | AI quality | `deno task eval --set docs/qa/receipts/` | Field accuracy is at least 85% and totals are correct for at least 95% (SC-003). |
 
 ## 3. Deploy the backend

@@ -15,9 +15,9 @@
     "bootstrap": "./scripts/bootstrap.sh"
   },
   "dependencies": {
-    "@hookform/resolvers": "^7.0.8",
+    "@hookform/resolvers": "^7.0.9",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-native-community/datetimepicker": "^9.1.0",
+    "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-community/netinfo": "12.0.1",
     "@sentry/react-native": "^8.36.0",
     "@supabase/supabase-js": "^2.119.2",
@@ -47,9 +47,10 @@
     "expo-sqlite": "~57.0.7",
     "expo-status-bar": "~57.0.1",
     "expo-web-browser": "~57.0.3",
-    "i18next": "^27.2.6",
+    "i18next": "^27.2.7",
     "posthog-react-native": "^4.87.2",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-hook-form": "^7.92.0",
     "react-i18next": "^18.0.3",
     "react-native": "0.86.3",
@@ -65,15 +66,15 @@
     "zod": "^3.25.0"
   },
   "devDependencies": {
-    "@react-native/jest-preset": "^0.88.1",
+    "@react-native/jest-preset": "^0.86.3",
     "@testing-library/react-native": "^14.1.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
     "@types/uuid": "^10.0.0",
-    "eslint": "^9.15.0",
-    "eslint-config-expo": "^58.0.4",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.2",
     "jest": "^30.5.2",
-    "jest-expo": "^58.0.15",
+    "jest-expo": "~57.0.6",
     "prettier": "^3.10.1",
     "tsx": "^4.20.0",
     "typescript": "~5.9.0"
