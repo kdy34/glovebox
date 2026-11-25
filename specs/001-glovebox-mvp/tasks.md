@@ -140,8 +140,8 @@
   - prompt-injection text in the image is ignored (the output must still match the schema)
   - totals mismatch adds a warning
   - timeout returns 504
-- [ ] T048 [P] [US2] Write unit tests in `app/__tests__/domain/extraction.test.ts` for draft → form mapping: low-confidence flags, the DIY detection default, line-item normalization.
-- [ ] T049 [P] [US2] Write unit tests in `app/__tests__/domain/duplicates.test.ts` for likely-duplicate detection.
+- [x] T048 [P] [US2] Write unit tests in `app/__tests__/domain/extraction.test.ts` for draft → form mapping: low-confidence flags, the DIY detection default, line-item normalization.
+- [x] T049 [P] [US2] Write unit tests in `app/__tests__/domain/duplicates.test.ts` for likely-duplicate detection.
 
 **Implementation**
 
@@ -153,7 +153,7 @@
   > - With `monetization_enabled` off, everyone gets the free scan limit, per contracts/app-config.md. quickstart.md US7 says "the limit lifts", which contradicts this; decide which is right before US7.
   > - `unreadable` means `is_receipt` is true but there's no total and no line items.
   > - Not yet run: a real Gemini call (no key in this environment).
-- [ ] T053 [P] [US2] Implement `app/src/domain/extraction.ts` and `app/src/domain/duplicates.ts`.
+- [x] T053 [P] [US2] Implement `app/src/domain/extraction.ts` and `app/src/domain/duplicates.ts`.
 - [ ] T054 [P] [US2] Wrap the iOS VisionKit scanner in `app/src/platform/documentScanner.ts`, with the image-picker and PDF fallback.
 - [ ] T055 [US2] Implement the receipt service (compress → sha256 → upload → attachment row → invoke the function → map errors to the manual fallback) in `app/src/services/receipts.ts`.
 - [ ] T056 [US2] Build the scan capture screen `app/app/scan/index.tsx`: pick the vehicle, scan or import, and a processing animation that is respectful of Reduce Motion.
