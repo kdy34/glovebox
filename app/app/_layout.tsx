@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from '@/data/auth';
 import { queryClient } from '@/data/queryClient';
 import { initSync, setSyncUser } from '@/data/sync';
 import { SyncBanner } from '@/features/sync/SyncBanner';
+import { ReminderNotifications } from '@/features/reminders/ReminderNotifications';
 import { STACK_TITLES, tabTitleKey } from '@/navigation/screens';
 import { initAnalytics } from '@/services/analytics';
 import { initSentry, wrapRoot } from '@/services/sentry';
@@ -55,6 +56,7 @@ function RootNavigator() {
     <>
       <StatusBar style={t.dark ? 'light' : 'dark'} />
       {signedIn && <SyncBanner />}
+      {signedIn && <ReminderNotifications />}
       <Stack
         screenOptions={{
           headerTintColor: t.colors.text,
