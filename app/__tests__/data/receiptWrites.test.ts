@@ -23,3 +23,23 @@ describe('extractionCorrections', () => {
     assert.deepEqual(extractionCorrections('e', ['odometer', 'odometer']).payload.corrected_fields, ['odometer']);
   });
 });
+
+// T062 — rule writes: a full upsert that never clears last_done_* on edit, and partial updates.
+import { ruleActive, ruleUpsert } from '../../src/data/writes.ts';
+
+describe('ruleUpsert / ruleActive', () => {
+  const fields = { name: 'Oil', service_category: 'oil_change' as const, interval_miles: 5000, interval_months: 6, lead_days: 14, lead_miles: 500 };
+  it('a new rule carries vehicle, source and its baseline', () => {
+    assert.deepEqual(ruleUpsert('r1', 'v1', fields, { source: 'generic', baseline: { last_done_on: '2026-06-01', last_done_odometer: 150000 } }), {
+      id: 'r1', table: 'maintenance_rules', operation: 'upsert',
+      payload: { id: 'r1', vehicle_id: 'v1', ...fields, source: 'generic', last_done_on: '2026-06-01', last_done_odometer: 150000 },
+    });
+  });
+  it('an edit sends no last_done_* (so the reset history is kept)', () => {
+    const e = ruleUpsert('r1', 'v1', fields, {});
+    assert.ok(!('last_done_on' in e.payload) && !('last_done_odometer' in e.payload) && !('source' in e.payload));
+  });
+  it('turning a rule off is a partial update', () => {
+    assert.deepEqual(ruleActive('r1', false), { id: 'r1', table: 'maintenance_rules', operation: 'update', payload: { is_active: false } });
+  });
+});

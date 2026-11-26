@@ -6,6 +6,7 @@ import { listRecords, getRecord, getLineItems, saveRecord, deleteRecord, type Sa
 import { getProfile, hasActiveSubscription, updateProfile, type ProfileRow } from './repositories/profile';
 import type { ProfileFields } from './writes';
 import { listOdometerReadings, saveOdometerReading, excludeOdometerReading, type OdometerInput } from './repositories/odometer';
+import { deleteRule, listAllRules, listRules, saveRule, setRuleActive, type SaveRuleArgs } from './repositories/rules';
 
 // ─── Vehicles ──────────────────────────────────────────────────────────────
 
@@ -16,6 +17,8 @@ export const qk = {
   record: (id: string) => ['record', id] as const,
   lineItems: (recordId: string) => ['lineItems', recordId] as const,
   odometer: (vehicleId: string) => ['odometer', vehicleId] as const,
+  rules: ['rules'] as const,
+  vehicleRules: (vehicleId: string) => ['rules', vehicleId] as const,
 };
 
 export function useVehicles() {
@@ -93,6 +96,7 @@ export function useSaveRecord() {
     onSuccess: (_, args: SaveRecordArgs) => {
       void qc.invalidateQueries({ queryKey: qk.records(args.record.vehicle_id) });
       void qc.invalidateQueries({ queryKey: qk.odometer(args.record.vehicle_id) });
+      void qc.invalidateQueries({ queryKey: qk.rules }); // save_record resets matching rules (FR-022)
     },
   });
 }
@@ -136,6 +140,25 @@ export function useExcludeOdometerReading() {
     },
   });
 }
+
+// ─── Maintenance rules (T062) ──────────────────────────────────────────────
+
+export function useRules(vehicleId: string) {
+  return useQuery({ queryKey: qk.vehicleRules(vehicleId), queryFn: () => listRules(vehicleId), enabled: !!vehicleId });
+}
+
+export function useAllRules() {
+  return useQuery({ queryKey: qk.rules, queryFn: listAllRules });
+}
+
+function useRuleMutation<A>(fn: (a: A) => Promise<unknown>) {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: fn, onSuccess: () => void qc.invalidateQueries({ queryKey: qk.rules }) });
+}
+
+export const useSaveRule = () => useRuleMutation((a: SaveRuleArgs) => saveRule(a));
+export const useSetRuleActive = () => useRuleMutation((a: { id: string; isActive: boolean }) => setRuleActive(a.id, a.isActive));
+export const useDeleteRule = () => useRuleMutation((id: string) => deleteRule(id));
 
 // ─── Profile (T044) ────────────────────────────────────────────────────────
 

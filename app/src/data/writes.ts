@@ -3,6 +3,7 @@
 // which fails NOT NULL (23502) for any payload that isn't a full row.
 // updated_at is set by the set_updated_at trigger, so it isn't sent.
 import type { NewOutboxEntry } from './outbox';
+import type { RuleFields } from '../domain/ruleForm';
 
 export function vehicleArchive(id: string, nowIso: string): NewOutboxEntry {
   return { id, table: 'vehicles', operation: 'update', payload: { status: 'archived', archived_at: nowIso } };
@@ -49,4 +50,22 @@ export function extractionCorrections(extractionId: string, fields: readonly str
   // 10 draft fields + at most 60 line items
   const corrected_fields = [...new Set(fields)].slice(0, 70);
   return { id: extractionId, table: 'receipt_extractions', operation: 'update', payload: { corrected_fields } };
+}
+
+/** T062: a maintenance rule as a full upsert. On edit, last_done_* and source are left out so a
+ * reset done by save_record (FR-022) is never overwritten. */
+export function ruleUpsert(
+  id: string,
+  vehicleId: string,
+  fields: RuleFields,
+  extra: { source?: 'generic' | 'owners_manual' | 'user'; baseline?: { last_done_on: string; last_done_odometer: number | null } | null },
+): NewOutboxEntry {
+  const payload: Record<string, unknown> = { id, vehicle_id: vehicleId, ...fields };
+  if (extra.source) payload.source = extra.source;
+  if (extra.baseline) Object.assign(payload, extra.baseline);
+  return { id, table: 'maintenance_rules', operation: 'upsert', payload };
+}
+
+export function ruleActive(id: string, isActive: boolean): NewOutboxEntry {
+  return { id, table: 'maintenance_rules', operation: 'update', payload: { is_active: isActive } };
 }
