@@ -11,14 +11,13 @@ import { buildDueItems } from '@/domain/dueItems';
 import { parseFuelType } from '@/domain/fuelType';
 import { SERVICE_CATEGORIES, categoryLabelKey, type ServiceCategory } from '@/domain/categories';
 import { baselineFromRecords, genericSuggestions, parseRuleForm, ruleFromGeneric, type RuleFormInput, type RuleFormResult } from '@/domain/ruleForm';
-import type { Due, DueStatus } from '@/domain/reminders';
+import type { Due } from '@/domain/reminders';
 import { askForNotifications } from '@/services/notifications';
 import { track } from '@/services/analytics';
-import { formatDistance, formatDueDate, localToday } from '@/features/reminders/format';
+import { STATUS_TONE, dueText, formatDistance, localToday } from '@/features/reminders/format';
 import { Button, Card, Chip, Screen, Text, TextField } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 
-const TONE: Record<DueStatus, 'danger' | 'accent' | 'success' | 'neutral'> = { overdue: 'danger', due_soon: 'accent', ok: 'success', unknown: 'neutral' };
 
 function confirm(title: string, body: string, yes: string, no: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -90,14 +89,7 @@ export default function RulesScreen() {
     setEditor(null);
   };
 
-  const dueText = (d: Due) => {
-    const date = d.dueOn ? formatDueDate(d.dueOn) : null;
-    const odo = d.dueOdometer !== null ? formatDistance(d.dueOdometer, unit) : null;
-    if (date && odo) return tr('reminders.dueOnOrAt', { date, odo });
-    if (date) return tr('reminders.dueOn', { date });
-    if (odo) return tr('reminders.dueAt', { odo });
-    return null;
-  };
+  const dueLine = (d: Due) => dueText(tr, d, unit);
 
   const setField = (k: keyof RuleFormInput, v: string) => editor && setEditor({ ...editor, form: { ...editor.form, [k]: v }, errors: undefined });
   const err = (k: string) => editor?.errors?.[k as keyof NonNullable<Editor['errors']>] ? tr(`reminders.form.error.${k}`) : undefined;
@@ -113,11 +105,11 @@ export default function RulesScreen() {
             <View style={{ gap: t.spacing.xs }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: t.spacing.sm }}>
                 <Text variant="headline" style={{ flex: 1 }}>{r.name}</Text>
-                {r.is_active && d ? <Chip label={tr(`reminders.status.${d.status}`)} tone={TONE[d.status]} /> : <Chip label={tr('reminders.off')} />}
+                {r.is_active && d ? <Chip label={tr(`reminders.status.${d.status}`)} tone={STATUS_TONE[d.status]} /> : <Chip label={tr('reminders.off')} />}
               </View>
               {r.source === 'generic' ? <Text variant="footnote" color="textMuted">{tr('rules.genericLabel')}</Text> : null}
               {r.source === 'owners_manual' ? <Text variant="footnote" color="textMuted">{tr('reminders.ownersManual')}</Text> : null}
-              {r.is_active && d && dueText(d) ? <Text variant="callout">{dueText(d)}</Text> : null}
+              {r.is_active && d && dueLine(d) ? <Text variant="callout">{dueLine(d)}</Text> : null}
               {r.is_active && d?.decidedBy === 'mileage' ? <Text variant="footnote" color="textMuted">{tr('reminders.decidedByMileage')}</Text> : null}
               {r.is_active && d?.needsOdometer ? (
                 <View style={{ gap: t.spacing.xs }}>

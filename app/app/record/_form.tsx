@@ -6,7 +6,7 @@ import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } fr
 import { useTranslation } from 'react-i18next';
 import { formatCents, lineAmountCents } from '@/domain/money';
 import { recordAmounts } from '@/domain/recordAmounts';
-import { SERVICE_CATEGORIES, EXPENSE_CATEGORIES, categoryLabelKey, type Category, type RecordKind } from '@/domain/categories';
+import { SERVICE_CATEGORIES, EXPENSE_CATEGORIES, categoryLabelKey, kindOf, type Category, type RecordKind } from '@/domain/categories';
 import { useSaveRecord, useRecord, useLineItems, useDeleteRecord, useVehicle, useRecords } from '@/data/queries';
 import { correctedFields, formTotalsMismatch, type DraftForm, type FormFlag } from '@/domain/extraction';
 import { findLikelyDuplicate } from '@/domain/duplicates';
@@ -39,6 +39,8 @@ interface Props {
   receipt?: ReceiptContext;
   /** Shown above the form (receipt preview, fallback message). */
   header?: ReactNode;
+  /** T065 "Log it": start a new record in this category. */
+  initialCategory?: string;
 }
 
 type ItemType = 'part' | 'labor' | 'fee' | 'discount';
@@ -133,7 +135,7 @@ function saveErrorKey(err: unknown): string {
   return 'record.saveError';
 }
 
-export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved, onDeleted, onCancel, receipt, header }: Props) {
+export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved, onDeleted, onCancel, receipt, header, initialCategory }: Props) {
   const { t: tr } = useTranslation();
   const t = useTheme();
   const { mutateAsync: save, isPending } = useSaveRecord();
@@ -150,8 +152,10 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
 
   // Form state
   // A receipt draft seeds the initial state (it is known at mount).
-  const [kind, setKind] = useState<RecordKind>(draft?.kind ?? 'service');
-  const [category, setCategory] = useState<Category>(draft?.category ?? 'oil_change');
+  const startCategory = (SERVICE_CATEGORIES as readonly string[]).includes(initialCategory ?? '') || (EXPENSE_CATEGORIES as readonly string[]).includes(initialCategory ?? '')
+    ? (initialCategory as Category) : null;
+  const [kind, setKind] = useState<RecordKind>(draft?.kind ?? (startCategory ? kindOf(startCategory) : 'service'));
+  const [category, setCategory] = useState<Category>(draft?.category ?? startCategory ?? 'oil_change');
   const [date, setDate] = useState(draft?.performedOn ?? today);
   const [odometer, setOdometer] = useState(draft?.odometer ?? '');
   const [shopName, setShopName] = useState(draft?.shopName ?? '');

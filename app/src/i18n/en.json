@@ -372,6 +372,12 @@
     "permissionBody": "Glovebox can remind you before a service is due. You can change this any time in Settings.",
     "permissionYes": "Turn on",
     "permissionNo": "Not now",
-    "openRules": "Reminders"
+    "openRules": "Reminders",
+    "emptyTitle": "No reminders yet",
+    "emptyBody": "Open a car and tap Reminders to add suggested or custom ones.",
+    "emptyAction": "Go to Garage",
+    "logIt": "Log it",
+    "logItA11y": "Log {{name}}",
+    "updateOdometer": "Update odometer"
   }
 }

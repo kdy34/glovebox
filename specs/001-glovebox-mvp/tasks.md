@@ -186,7 +186,7 @@
 - [x] T062 [P] [US3] Implement the rules repository and hooks in `app/src/data/repositories/rules.ts`.
 - [x] T063 [US3] Implement the local notification scheduler (reschedule on data change and launch, permission pre-prompt) in `app/src/services/notifications.ts`.
 - [x] T064 [US3] Build the rules screen `app/app/vehicle/[id]/rules.tsx`: add from the generic set or custom, edit intervals, lead time, the "Generic — check your owner's manual" label. Offer `genericStarterSet(vehicle.fuel_type)` (002 FR-004) and use `rules.genericLabel`. Once the rules screen exists, show the 002 FR-006 electric notice (Edit vehicle) only for cars that have rules.
-- [ ] T065 [US3] Build the Reminders tab `app/app/(tabs)/reminders.tsx`: due across all vehicles sorted by urgency, "Log it" quick action, and "Update odometer" when projection data is missing.
+- [x] T065 [US3] Build the Reminders tab `app/app/(tabs)/reminders.tsx`: due across all vehicles sorted by urgency, "Log it" quick action, and "Update odometer" when projection data is missing.
 - [ ] T066 [P] [US3] Add a vehicle health ring component in `app/src/ui/components/ProgressRing.tsx`, and due chips on Garage cards.
 
 ---
