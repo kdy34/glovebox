@@ -6,7 +6,7 @@ export type ColorToken =
   | 'text' | 'textMuted'
   | 'primary' | 'onPrimary'
   | 'accent' | 'onAccent' | 'accentText'
-  | 'selectedBg' | 'onSelected' | 'flaggedBg'
+  | 'selectedBg' | 'onSelected' | 'flaggedBg' | 'successBg' | 'dangerBg'
   | 'success' | 'successText' | 'warning' | 'warningText' | 'danger' | 'dangerText'
   | 'overlay';
 
@@ -31,6 +31,8 @@ export const palettes: { light: Palette; dark: Palette } = {
     selectedBg: ink, // T103a: selected segment is a filled navy
     onSelected: '#FFFFFF',
     flaggedBg: '#FFF8E6', // AI draft field to check (FR-013)
+    successBg: '#E3F4EC', // status chips (T066)
+    dangerBg: '#FBE6E6',
     success: '#2E9E6B',
     successText: '#1D7049',
     warning: '#F2A900',
@@ -54,6 +56,8 @@ export const palettes: { light: Palette; dark: Palette } = {
     selectedBg: '#2E4A7A', // lighter navy so the fill reads against the dark surfaces
     onSelected: '#FFFFFF',
     flaggedBg: '#2A2410',
+    successBg: '#163A2A',
+    dangerBg: '#3D1A1A',
     success: '#3FBF86',
     successText: '#6FDCA8',
     warning: '#F2A900',
@@ -70,6 +74,7 @@ export const textPairs: readonly [ColorToken, ColorToken, number][] = [
   ['textMuted', 'bg', 4.5], ['textMuted', 'surface', 4.5], ['textMuted', 'surfaceAlt', 4.5],
   ['onPrimary', 'primary', 4.5], ['onAccent', 'accent', 4.5], ['onSelected', 'selectedBg', 4.5],
   ['text', 'flaggedBg', 4.5], ['accentText', 'flaggedBg', 4.5],
+  ['successText', 'successBg', 4.5], ['dangerText', 'dangerBg', 4.5],
   ['accentText', 'surface', 4.5], ['accentText', 'bg', 4.5],
   ['successText', 'surface', 4.5], ['warningText', 'surface', 4.5], ['dangerText', 'surface', 4.5],
   ['successText', 'bg', 4.5], ['dangerText', 'bg', 4.5],

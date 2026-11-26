@@ -6,7 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRecords, useVehicles } from '@/data/queries';
 import type { VehicleRow } from '@/data/types';
 import { lastServiceDate, vehicleCardText } from '@/domain/vehicleCard';
-import { Button, Card, EmptyState, Text } from '@/ui/components';
+import { vehicleHealth, type Health } from '@/domain/health';
+import { useDueItems } from '@/features/reminders/useDueItems';
+import { DueChips } from '@/features/reminders/DueChips';
+import { Button, Card, EmptyState, ProgressRing, Text } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 
 function formatServiceDate(date: string): string {
@@ -14,7 +17,7 @@ function formatServiceDate(date: string): string {
   return new Date(y!, m! - 1, d!).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function VehicleCard({ vehicle }: { vehicle: VehicleRow }) {
+function VehicleCard({ vehicle, health }: { vehicle: VehicleRow; health: Health | null }) {
   const t = useTheme();
   const { t: tr } = useTranslation();
   const { data: records } = useRecords(vehicle.id);
@@ -30,10 +33,20 @@ function VehicleCard({ vehicle }: { vehicle: VehicleRow }) {
       onPress={() => router.push(`/vehicle/${vehicle.id}`)}
       accessibilityLabel={subtitleText ? `${title}, ${subtitleText}` : title}
     >
-      <View style={{ gap: t.spacing.sm }}>
-        <Text variant="headline">{title}</Text>
-        {subtitleText ? (
-          <Text variant="footnote" color="textMuted">{subtitleText}</Text>
+      <View style={{ flexDirection: 'row', gap: t.spacing.md, alignItems: 'center' }}>
+        <View style={{ flex: 1, gap: t.spacing.sm }}>
+          <Text variant="headline">{title}</Text>
+          {subtitleText ? (
+            <Text variant="footnote" color="textMuted">{subtitleText}</Text>
+          ) : null}
+          {health ? <DueChips health={health} /> : null}
+        </View>
+        {health ? (
+          <ProgressRing
+            progress={health.score}
+            tone={health.tone}
+            accessibilityLabel={tr('reminders.ringLabel', { ok: health.tracked - health.overdue - health.dueSoon, total: health.tracked })}
+          />
         ) : null}
       </View>
     </Card>
@@ -44,6 +57,7 @@ export default function Garage() {
   const { t: tr } = useTranslation();
   const t = useTheme();
   const { data: vehicles, isLoading, isError } = useVehicles();
+  const { items: dueItems } = useDueItems();
 
   return (
     <SafeAreaView edges={['bottom']} style={{ flex: 1, backgroundColor: t.colors.bg }}>
@@ -66,7 +80,9 @@ export default function Garage() {
             onAction={() => router.push('/vehicle/new')}
           />
         )}
-        {vehicles?.map((v) => <VehicleCard key={v.id} vehicle={v} />)}
+        {vehicles?.map((v) => (
+          <VehicleCard key={v.id} vehicle={v} health={vehicleHealth(dueItems.filter((i) => i.vehicle.id === v.id).map((i) => i.due))} />
+        ))}
         {vehicles && vehicles.length > 0 && (
           <Button
             title={tr('garage.addVehicle')}

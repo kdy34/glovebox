@@ -9,3 +9,4 @@ export { Sheet } from './Sheet';
 export { ToastProvider, useToast } from './Toast';
 export type { ToastTone } from './Toast';
 export { Screen, Chip, ListRow, Divider, EmptyState } from './misc';
+export { ProgressRing } from './ProgressRing';

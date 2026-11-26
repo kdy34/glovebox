@@ -378,6 +378,10 @@
     "emptyAction": "Go to Garage",
     "logIt": "Log it",
     "logItA11y": "Log {{name}}",
-    "updateOdometer": "Update odometer"
+    "updateOdometer": "Update odometer",
+    "chipOverdue": "{{count}} overdue",
+    "chipDueSoon": "{{count}} due soon",
+    "chipAllOk": "All on track",
+    "ringLabel": "{{ok}} of {{total}} reminders on track"
   }
 }

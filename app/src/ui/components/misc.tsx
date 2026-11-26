@@ -29,8 +29,8 @@ export function Chip({ label, tone = 'neutral', onPress, selected }: { label: st
   const map: Record<ChipTone, { bg: string; fg: ColorToken }> = {
     neutral: { bg: selected ? t.colors.primary : t.colors.surfaceAlt, fg: selected ? 'onPrimary' : 'text' },
     accent: { bg: t.colors.accent, fg: 'onAccent' },
-    success: { bg: t.dark ? '#163A2A' : '#E3F4EC', fg: 'successText' },
-    danger: { bg: t.dark ? '#3D1A1A' : '#FBE6E6', fg: 'dangerText' },
+    success: { bg: t.colors.successBg, fg: 'successText' },
+    danger: { bg: t.colors.dangerBg, fg: 'dangerText' },
   };
   const s = map[tone];
   const body = (

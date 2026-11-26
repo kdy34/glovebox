@@ -50,5 +50,5 @@ supabase gen types typescript --local > app/src/data/types.ts
 ## Status
 
 - Progress lives in `specs/001-glovebox-mvp/tasks.md` and `specs/002-vehicle-fuel-type/tasks.md`, the source of truth.
-- Last checkpoint: US1, converge T096–T106, US6 (T040–T045), US2 (T046–T058). 002 (vehicle fuel type) T001–T016 done. Open in-app checks: 002 T012 and 001 T107 (simulator walkthroughs). A real Gemini run needs `GEMINI_API_KEY` in `supabase/.env.local`.
-- **Next:** T107 simulator walkthrough, then US3 reminders (T059–T066).
+- Last checkpoint: US1, converge T096–T108, US6 (T040–T045), US2 (T046–T058), US3 (T059–T066), T095. 002 (vehicle fuel type) T001–T016 done. Open in-app checks: 002 T012 and 001 T107 (simulator walkthroughs; T107 now also covers US3). A real Gemini run needs `GEMINI_API_KEY` in `supabase/.env.local`.
+- **Next:** T107 simulator walkthrough, then US4 cost insights (T067–T071).
