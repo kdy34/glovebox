@@ -172,8 +172,8 @@
 
 **Tests first**
 
-- [ ] T059 [P] [US3] Write unit tests in `app/__tests__/domain/projection.test.ts`: miles-per-day regression, the minimum-data rules, excluded readings ignored.
-- [ ] T060 [P] [US3] Write unit tests in `app/__tests__/domain/reminders.test.ts`:
+- [x] T059 [P] [US3] Write unit tests in `app/__tests__/domain/projection.test.ts`: miles-per-day regression, the minimum-data rules, excluded readings ignored.
+- [x] T060 [P] [US3] Write unit tests in `app/__tests__/domain/reminders.test.ts`:
   - whichever-first rule
   - Due soon / Overdue thresholds
   - time-only fallback
@@ -182,7 +182,7 @@
 
 **Implementation**
 
-- [ ] T061 [P] [US3] Implement `app/src/domain/projection.ts`, `app/src/domain/reminders.ts` and `app/src/domain/genericRules.ts` (labelled generic starter set). Note: `genericRules.ts` already exists (`specs/002-vehicle-fuel-type`, R7 data + fuel filter); build projection and reminders on it and don't rewrite it.
+- [x] T061 [P] [US3] Implement `app/src/domain/projection.ts`, `app/src/domain/reminders.ts` and `app/src/domain/genericRules.ts` (labelled generic starter set). Note: `genericRules.ts` already exists (`specs/002-vehicle-fuel-type`, R7 data + fuel filter); build projection and reminders on it and don't rewrite it.
 - [ ] T062 [P] [US3] Implement the rules repository and hooks in `app/src/data/repositories/rules.ts`.
 - [ ] T063 [US3] Implement the local notification scheduler (reschedule on data change and launch, permission pre-prompt) in `app/src/services/notifications.ts`.
 - [ ] T064 [US3] Build the rules screen `app/app/vehicle/[id]/rules.tsx`: add from the generic set or custom, edit intervals, lead time, the "Generic — check your owner's manual" label. Offer `genericStarterSet(vehicle.fuel_type)` (002 FR-004) and use `rules.genericLabel`. Once the rules screen exists, show the 002 FR-006 electric notice (Edit vehicle) only for cars that have rules.
