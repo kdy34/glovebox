@@ -68,3 +68,10 @@ test('the custom-rule form explains a missing interval', async () => {
   expect(screen.getByText('Enter a distance, a number of months, or both.')).toBeTruthy();
   alert.mockRestore();
 });
+
+test('an added suggestion disappears at once, so a second tap cannot add it twice', async () => {
+  await render(<RulesScreen />, { wrapper });
+  await fireEvent.press(screen.getByRole('button', { name: 'Add Tire rotation' }));
+  expect(screen.queryByRole('button', { name: 'Add Tire rotation' })).toBeNull();
+  expect(mockSaveRule).toHaveBeenCalledTimes(1);
+});

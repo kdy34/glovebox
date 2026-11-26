@@ -15,7 +15,7 @@ jest.mock('expo-notifications', () => ({
 }));
 
 import * as N from 'expo-notifications';
-import { askForNotifications, syncReminderNotifications } from '@/services/notifications';
+import { askForNotifications, cancelReminderNotifications, syncReminderNotifications } from '@/services/notifications';
 
 const plan = [
   { identifier: 'glovebox-rule:r1:2026-12-01', ruleId: 'r1', vehicleId: 'v1', fireAt: new Date(2026, 10, 17, 9), title: 'Oil change due soon', body: 'Prius · due Dec 1' },
@@ -66,4 +66,12 @@ test('no prompts when already decided', async () => {
   expect(await askForNotifications(pre)).toBe(false);
   expect(pre).not.toHaveBeenCalled();
   expect(N.requestPermissionsAsync).not.toHaveBeenCalled();
+});
+
+test('sign-out / account deletion cancels every reminder and nothing else (constitution I)', async () => {
+  mockScheduled.push({ identifier: 'glovebox-rule:r1:2026-12-01' }, { identifier: 'glovebox-rule:r2:2026-08-01' }, { identifier: 'something-else' });
+  mockPermission.status = 'denied'; // cancelling must not depend on permission
+  expect(await cancelReminderNotifications()).toBe(2);
+  expect(N.cancelScheduledNotificationAsync).toHaveBeenCalledTimes(2);
+  expect(N.cancelScheduledNotificationAsync).not.toHaveBeenCalledWith('something-else');
 });

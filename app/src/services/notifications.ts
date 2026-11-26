@@ -62,3 +62,10 @@ export function onReminderTapped(open: (url: string) => void): () => void {
   });
   return () => sub.remove();
 }
+
+/** Sign-out and account deletion: no reminder about this account's cars may fire afterwards. */
+export async function cancelReminderNotifications(): Promise<number> {
+  const ids = (await Notifications.getAllScheduledNotificationsAsync()).map((n) => n.identifier).filter((id) => id.startsWith(PREFIX));
+  for (const id of ids) await Notifications.cancelScheduledNotificationAsync(id);
+  return ids.length;
+}

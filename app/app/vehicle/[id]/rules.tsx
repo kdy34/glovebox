@@ -50,6 +50,8 @@ export default function RulesScreen() {
   const { mutateAsync: setActive } = useSetRuleActive();
   const { mutateAsync: removeRule } = useDeleteRule();
   const [editor, setEditor] = useState<Editor | null>(null);
+  // Suggestions added in this visit: hidden at once, before the outbox write comes back.
+  const [added, setAdded] = useState<ReadonlySet<string>>(new Set());
 
   const unit = vehicle?.odometer_unit ?? 'mi';
   const dueByRule = useMemo(() => {
@@ -57,21 +59,25 @@ export default function RulesScreen() {
     const items = buildDueItems([{ ...vehicle, status: 'active' }], rules, { [vehicleId]: readings }, localToday());
     return new Map(items.map((i) => [i.rule.id, i.due]));
   }, [vehicle, rules, readings, vehicleId]);
-  const suggestions = vehicle ? genericSuggestions(parseFuelType(vehicle.fuel_type), rules, (k) => tr(`rules.generic.${k}`)) : [];
+  const suggestions = vehicle
+    ? genericSuggestions(parseFuelType(vehicle.fuel_type), rules, (k) => tr(`rules.generic.${k}`)).filter((g) => !added.has(g.key))
+    : [];
   const sorted = [...rules].sort((a, b) => Number(b.is_active) - Number(a.is_active));
 
-  const afterFirstRule = async () => {
-    if (rules.length > 0) return;
+  const afterFirstRule = async (wasFirst: boolean) => {
+    if (!wasFirst) return;
     await askForNotifications(() => confirm(tr('reminders.permissionTitle'), tr('reminders.permissionBody'), tr('reminders.permissionYes'), tr('reminders.permissionNo')));
   };
 
   const addGeneric = async (key: string) => {
     const g = suggestions.find((s) => s.key === key);
     if (!g) return;
+    const wasFirst = rules.length === 0 && added.size === 0;
+    setAdded((prev) => new Set(prev).add(key));
     const { source, ...fields } = ruleFromGeneric(g, tr(g.nameKey));
     await saveRule({ vehicleId, fields, source, baseline: baselineFromRecords(records, g.serviceCategory) });
     track('reminder_created', { source });
-    await afterFirstRule();
+    await afterFirstRule(wasFirst);
   };
 
   const saveEditor = async () => {
@@ -84,7 +90,7 @@ export default function RulesScreen() {
       const source = editor.ownersManual ? 'owners_manual' : 'user';
       await saveRule({ vehicleId, fields: parsed.value, source, baseline: baselineFromRecords(records, parsed.value.service_category) });
       track('reminder_created', { source });
-      await afterFirstRule();
+      await afterFirstRule(rules.length === 0 && added.size === 0);
     }
     setEditor(null);
   };

@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import { createOutbox, createSupabaseExecutor, type NewOutboxEntry, type SupabaseLike } from './outbox';
 import { sqliteOutboxStore, initOutboxDb } from './outbox.sqlite';
 import { captureError } from '@/services/sentry';
+import { queryClient } from './queryClient';
 
 const outbox = createOutbox(sqliteOutboxStore);
 const execute = createSupabaseExecutor(supabase as unknown as SupabaseLike);
@@ -45,6 +46,9 @@ export async function tryFlush(): Promise<void> {
       if (await isOffline()) return; // the NetInfo listener flushes on reconnect
       const result = await outbox.flush(execute);
       scheduleRetry(result.nextAttemptAt);
+      // Mutations invalidate when a change is queued, which can be before it reaches the
+      // server; refresh again once it has, so screens (e.g. a just-added rule) show it.
+      if (result.synced.length) void queryClient.invalidateQueries();
     } while (flushAgain);
   } catch (err) {
     // Local store error (send failures are handled inside flush). The next trigger retries.

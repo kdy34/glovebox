@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { identify, resetAnalytics } from '@/services/analytics';
 import { queryClient } from './queryClient';
+import { cancelReminderNotifications } from '@/services/notifications';
 import { supabase } from './supabase';
 
 interface AuthState {
@@ -24,7 +25,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       // Query keys aren't user-scoped: never show one user's cached data to the next (T100).
-      if (event === 'SIGNED_OUT') queryClient.clear();
+      if (event === 'SIGNED_OUT') {
+        queryClient.clear();
+        // Sign-out and account deletion: no reminder about this account's cars may fire later.
+        void cancelReminderNotifications().catch(() => undefined);
+      }
       setSession(s);
       if (s?.user) identify(s.user.id);
     });
