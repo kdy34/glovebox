@@ -104,6 +104,15 @@ select tests.ok(public.consume_scan('00000000-0000-0000-0000-0000000000c1', 2), 
 select tests.ok(public.consume_scan('00000000-0000-0000-0000-0000000000c1', null), 'null limit means unlimited (Pro fair use handled by limit value)');
 reset role;
 
+-- T108: a record with only a total and no line items (e.g. fuel) — save_record trusts subtotal_cents
+select tests.login('00000000-0000-0000-0000-0000000000c1');
+select (public.save_record(
+  '{"id":"cccccccc-0000-0000-0000-0000000000f9","vehicle_id":"cccccccc-0000-0000-0000-000000000001","kind":"expense","category":"fuel","title":"Fuel","performed_on":"2026-06-02","subtotal_cents":4000,"tax_cents":210}',
+  '[]')).id;
+select tests.ok((select (subtotal_cents, tax_cents, total_cents) = (4000::bigint, 210::bigint, 4210::bigint) from public.service_records where id = 'cccccccc-0000-0000-0000-0000000000f9'),
+  'a total-only record saves with total = subtotal + tax and no line items');
+reset role;
+
 -- account deletion cascades everything (US6). Count only this test user's rows: a local
 -- Supabase DB can hold dev accounts, which must not affect the result.
 create temp table c1_rows on commit drop as

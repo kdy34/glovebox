@@ -158,8 +158,6 @@
     "saveForbidden": "You don't have permission to change this record.",
     "amountLabel": "Amount",
     "removeItem": "Remove item",
-    "noItemsTitle": "No items",
-    "noItemsBody": "Please add at least one line item.",
     "odometerOptional": "{{label}} ({{unit}}, optional)",
     "addressLabel": "Shop address (optional)",
     "scanTitle": "Check receipt",
@@ -172,7 +170,12 @@
     "receiptImage": "Receipt",
     "receiptPdf": "PDF receipt attached",
     "receiptTapToZoom": "Tap to enlarge",
-    "aiDraftNote": "Draft from your receipt. Nothing is saved until you tap Save."
+    "aiDraftNote": "Draft from your receipt. Nothing is saved until you tap Save.",
+    "noAmountTitle": "No amount",
+    "noAmountBody": "Add line items or enter the total.",
+    "taxExceedsTitle": "Tax is more than the total",
+    "taxExceedsBody": "Check the tax and the total.",
+    "totalHint": "No line items? Enter the total from the receipt."
   },
   "odometer": {
     "newTitle": "Log odometer",

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { formatCents, lineAmountCents } from '@/domain/money';
+import { recordAmounts } from '@/domain/recordAmounts';
 import { SERVICE_CATEGORIES, EXPENSE_CATEGORIES, categoryLabelKey, type Category, type RecordKind } from '@/domain/categories';
 import { useSaveRecord, useRecord, useLineItems, useDeleteRecord, useVehicle, useRecords } from '@/data/queries';
 import { correctedFields, formTotalsMismatch, type DraftForm, type FormFlag } from '@/domain/extraction';
@@ -159,6 +160,8 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
   const [taxCents, setTaxCents] = useState<number | null>(draft?.taxCents ?? null);
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<LineItemDraft[]>(draft?.items ?? []);
+  // T108: without line items the user enters the total (e.g. fuel); a draft brings the printed one.
+  const [enteredTotalCents, setEnteredTotalCents] = useState<number | null>(draft && draft.items.length === 0 ? draft.receiptTotalCents : null);
   // FR-013: fields to check; a flag clears once the user edits that field.
   const [flags, setFlags] = useState<ReadonlySet<FormFlag>>(new Set(draft?.flags ?? []));
   const unflag = (f: FormFlag) => setFlags((prev) => { if (!prev.has(f)) return prev; const n = new Set(prev); n.delete(f); return n; });
@@ -176,6 +179,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
     setShopAddress(existing.shop_address ?? '');
     setIsDiy(existing.is_diy);
     setTaxCents(existing.tax_cents);
+    setEnteredTotalCents(existing.total_cents);
     setNotes(existing.notes ?? '');
   }, [existing]);
 
@@ -203,11 +207,10 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
     }
   };
 
-  const subtotalCents = useMemo(() =>
-    items.reduce((s, it) => s + (it.amount_cents ?? 0), 0),
-    [items],
-  );
-  const totalCents = subtotalCents + (taxCents ?? 0);
+  const amounts = useMemo(() => recordAmounts({ items, taxCents, enteredTotalCents }), [items, taxCents, enteredTotalCents]);
+  const itemized = items.length > 0;
+  const subtotalCents = amounts.ok ? amounts.subtotalCents : 0;
+  const totalCents = amounts.ok ? amounts.totalCents : (enteredTotalCents ?? 0);
 
   const addItem = () => {
     setItems((prev) => [...prev, {
@@ -220,7 +223,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
     }]);
   };
 
-  const mismatch = draft ? formTotalsMismatch(subtotalCents, taxCents, draft.receiptTotalCents) : false;
+  const mismatch = draft && itemized ? formTotalsMismatch(subtotalCents, taxCents, draft.receiptTotalCents) : false;
 
   /** The form as a DraftForm, to compare with the AI draft (corrected_fields, SC-003). */
   const currentAsDraft = (): DraftForm | null => draft && ({
@@ -285,8 +288,9 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
 
   const handleSave = useCallback(async () => {
     if (!vehicleId) return;
-    if (items.length === 0) {
-      Alert.alert(tr('record.noItemsTitle'), tr('record.noItemsBody'));
+    if (!amounts.ok) {
+      if (amounts.reason === 'tax_exceeds_total') Alert.alert(tr('record.taxExceedsTitle'), tr('record.taxExceedsBody'));
+      else Alert.alert(tr('record.noAmountTitle'), tr('record.noAmountBody'));
       return;
     }
     if (receipt) {
@@ -303,7 +307,7 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
       }
     }
     await doSave();
-  }, [vehicleId, items.length, receipt, date, totalCents, isDiy, shopName, vehicleRecords, recordId, doSave, tr]);
+  }, [vehicleId, amounts, receipt, date, totalCents, isDiy, shopName, vehicleRecords, recordId, doSave, tr]);
 
   const handleDelete = () => {
     Alert.alert(
@@ -478,10 +482,20 @@ export default function RecordForm({ vehicleId: propVehicleId, recordId, onSaved
               autoFocus={firstTextFlag === 'tax_cents'}
             />
             <Divider />
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text variant="headline">{tr('record.totalLabel')}</Text>
-              <Text variant="headline" tabular>{formatCents(totalCents)}</Text>
-            </View>
+            {itemized ? (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text variant="headline">{tr('record.totalLabel')}</Text>
+                <Text variant="headline" tabular>{formatCents(totalCents)}</Text>
+              </View>
+            ) : (
+              <MoneyField
+                label={tr('record.totalLabel')}
+                hint={tr('record.totalHint')}
+                cents={enteredTotalCents}
+                onChangeCents={setEnteredTotalCents}
+                accessibilityLabel={tr('record.totalLabel')}
+              />
+            )}
             {mismatch && draft?.receiptTotalCents != null ? (
               <Text variant="footnote" color="accentText" accessibilityLiveRegion="polite">
                 {tr('record.mismatch', { receipt: formatCents(draft.receiptTotalCents), computed: formatCents(totalCents) })}
