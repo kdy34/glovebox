@@ -219,7 +219,14 @@
 - [ ] T080 [US7] Implement `app/src/domain/entitlements.ts`, and use it in vehicle add, scan, insights and share links.
 - [ ] T081 [US7] Implement `supabase/functions/revenuecat-webhook/index.ts`.
 - [ ] T082 [US7] Implement the RevenueCat wrapper (configure only if monetization is enabled, `logIn` with the Supabase uid, restore, customer-info listener) in `app/src/services/purchases.ts`.
-- [ ] T083 [US7] Build the paywall `app/app/paywall.tsx`: benefits, StoreKit price strings, trial terms, renewal disclosure, Restore, Terms and Privacy links, close button, no dark patterns. Also wire the scan fallback: on `quota_exceeded` the review screen offers the paywall when monetization is enabled (contracts/edge-functions.md, client behavior); today it only falls back to manual entry.
+- [ ] T083 [US7] Build the paywall `app/app/paywall.tsx`: benefits, StoreKit price strings, trial terms, renewal disclosure, Restore, Terms and Privacy links, close button, no dark patterns. Show it on `quota_exceeded` from a receipt scan:
+  - **Trigger**: `extract-receipt` answers 402 `quota_exceeded` (body `{limit, resets_on}`). The scan screen still opens the review as the manual form with the photo attached (FR-015); the paywall is an offer on top of it, never a blocker.
+  - **Kill switch**: only when `app_config.monetization_enabled` is true (contracts/app-config.md). When false, nothing about Pro is shown: the review keeps the plain "You've used this month's receipt scans" message.
+  - **UI**: when enabled, the review's fallback card adds "Your free plan includes {{limit}} scans a month; they reset on {{date}}" and a secondary "See Glovebox Pro" button that opens `/paywall?trigger=scan_quota` as a modal. Closing the paywall returns to the review with everything kept (photo, typed values). No automatic popup, no countdown, no repeated prompt in the same session.
+  - **Purchase**: on a successful purchase or restore, the paywall closes and the review offers "Read the receipt now", which calls `extract-receipt` again for the same attachment (no re-upload) and, on success, fills the draft (merge rule: values the user already typed win).
+  - **Data**: `quota_exceeded` keeps `limit` and `resets_on` in the scan session (`app/src/features/scan/session.ts`); `extractErrorCode` already maps the code.
+  - **Analytics**: `paywall_viewed {trigger: 'scan_quota'}`; `purchase_completed` from T082.
+  - **Tests**: a component test that the "See Glovebox Pro" button appears only when monetization is enabled and only for `quota_exceeded`; a domain test for the "values the user typed win" merge; a quickstart row (US7) for the end-to-end path with a sandbox account.
 
 ---
 
