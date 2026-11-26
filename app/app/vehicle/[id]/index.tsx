@@ -109,17 +109,21 @@ export default function VehicleDetail() {
         </Text>
       ) : null}
 
-      {/* Filter chips */}
-      <View style={{ flexDirection: 'row', gap: t.spacing.sm, paddingHorizontal: t.spacing.lg, paddingBottom: t.spacing.sm }}>
+      {/* Filter chips, and the way to this car's reminders (T064) */}
+      <View style={{ flexDirection: 'row', gap: t.spacing.sm, paddingHorizontal: t.spacing.lg, paddingBottom: t.spacing.sm, alignItems: 'center' }}>
         {(['all', 'service', 'expense'] as const).map((f) => (
           <Chip
             key={f}
-            label={f === 'all' ? 'All' : f === 'service' ? 'Service' : 'Expense'}
+            label={tr(`vehicleScreen.filter.${f}`)}
             tone="neutral"
             selected={filter === f}
             onPress={() => setFilter(f)}
           />
         ))}
+        <View style={{ flex: 1 }} />
+        <Pressable onPress={() => router.push(`/vehicle/${id}/rules`)} accessibilityRole="button" accessibilityLabel={tr('reminders.openRules')} hitSlop={8}>
+          <Text variant="callout" color="accentText">{tr('reminders.openRules')}</Text>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: t.spacing.lg, gap: t.spacing.lg, paddingBottom: 100 }}>

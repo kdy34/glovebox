@@ -266,7 +266,8 @@
     "vehicle": "Vehicle",
     "legal": "Legal",
     "scan": "Scan receipt",
-    "scanReview": "Check receipt"
+    "scanReview": "Check receipt",
+    "rules": "Reminders"
   },
   "scan": {
     "title": "Scan receipt",
@@ -312,10 +313,65 @@
     "fabLogOdometer": "Log odometer",
     "fabLogManual": "Log manually",
     "fabOpen": "Add record",
-    "fabClose": "Close menu"
+    "fabClose": "Close menu",
+    "filter": {
+      "all": "All",
+      "service": "Service",
+      "expense": "Expense"
+    }
   },
   "reminders": {
     "notifyTitle": "{{rule}} due soon",
-    "notifyBody": "{{vehicle}} · due {{date}}"
+    "notifyBody": "{{vehicle}} · due {{date}}",
+    "title": "Reminders",
+    "status": {
+      "overdue": "Overdue",
+      "due_soon": "Due soon",
+      "ok": "On track",
+      "unknown": "Needs a reading"
+    },
+    "dueOnOrAt": "Due {{date}} or at {{odo}}, whichever comes first",
+    "dueOn": "Due {{date}}",
+    "dueAt": "Due at {{odo}}",
+    "decidedByMileage": "Estimated from your driving",
+    "needsOdometer": "Add an odometer reading so Glovebox can estimate when the mileage is reached.",
+    "addReading": "Add odometer reading",
+    "yours": "Your reminders",
+    "none": "No reminders for this car yet.",
+    "suggested": "Suggested",
+    "addSuggestion": "Add",
+    "addSuggestionA11y": "Add {{name}}",
+    "custom": "Add a custom reminder",
+    "edit": "Edit",
+    "delete": "Delete",
+    "turnOff": "Turn off",
+    "turnOn": "Turn on",
+    "off": "Off",
+    "ownersManual": "From the owner’s manual",
+    "ownersManualToggle": "These intervals are from my owner’s manual",
+    "form": {
+      "name": "Name",
+      "category": "Service",
+      "intervalMiles": "Every ({{unit}})",
+      "intervalMonths": "Every (months)",
+      "leadDays": "Remind me (days before)",
+      "leadMiles": "Remind me ({{unit}} before)",
+      "save": "Save reminder",
+      "error": {
+        "name": "Enter a name (up to 60 characters).",
+        "interval": "Enter a distance, a number of months, or both.",
+        "intervalMiles": "Distance must be between 100 and 200,000.",
+        "intervalMonths": "Months must be a whole number from 1 to 120.",
+        "leadDays": "Days before must be 0 to 90.",
+        "leadMiles": "Distance before must be 0 to 10,000."
+      }
+    },
+    "deleteTitle": "Delete reminder?",
+    "deleteBody": "This reminder will be removed. Your service records are not affected.",
+    "permissionTitle": "Get reminder notifications?",
+    "permissionBody": "Glovebox can remind you before a service is due. You can change this any time in Settings.",
+    "permissionYes": "Turn on",
+    "permissionNo": "Not now",
+    "openRules": "Reminders"
   }
 }

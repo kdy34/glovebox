@@ -73,3 +73,24 @@ describe('baselineFromRecords (a new rule starts from the latest matching servic
     assert.equal(baselineFromRecords(recs, 'tires'), null);
   });
 });
+
+import { genericSuggestions } from '../../src/domain/ruleForm.ts';
+
+describe('genericSuggestions (T064, 002 FR-004)', () => {
+  const name = (key: string) => ({ oil_change: 'Oil change', cabin_filter: 'Cabin air filter' } as Record<string, string>)[key] ?? key;
+  it('follows the fuel type: an electric car gets no oil change, engine air filter or coolant check', () => {
+    const keys = genericSuggestions('electric', [], name).map((g) => g.key);
+    assert.ok(!keys.includes('oil_change') && !keys.includes('engine_air_filter') && !keys.includes('coolant_check'));
+    assert.ok(keys.includes('battery_check'));
+  });
+  it('leaves out what the car already has (same name, or same category and intervals)', () => {
+    const existing = [
+      { name: 'oil change', service_category: 'oil_change', interval_miles: 3000, interval_months: 3 },
+      { name: 'My filter', service_category: 'filters', interval_miles: null, interval_months: 12 },
+    ];
+    const keys = genericSuggestions('gasoline', existing, name).map((g) => g.key);
+    assert.ok(!keys.includes('oil_change'), 'same name');
+    assert.ok(!keys.includes('cabin_filter'), 'same category and intervals');
+    assert.ok(keys.includes('engine_air_filter'), 'same category, other intervals');
+  });
+});

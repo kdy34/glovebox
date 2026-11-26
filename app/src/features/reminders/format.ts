@@ -13,3 +13,8 @@ export function vehicleLabel(v: Pick<VehicleRow, 'nickname' | 'year' | 'make' | 
 export function formatDistance(n: number, unit: string): string {
   return `${Math.round(n).toLocaleString('en-US')} ${unit}`;
 }
+
+/** Today as a local YYYY-MM-DD (service dates are calendar dates). */
+export function localToday(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

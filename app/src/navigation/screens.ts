@@ -10,6 +10,7 @@ export const STACK_TITLES = {
   'vehicle/new': 'vehicle.addTitle',
   'vehicle/[id]/index': 'nav.vehicle',
   'vehicle/[id]/edit': 'vehicle.editTitle',
+  'vehicle/[id]/rules': 'nav.rules',
   'record/new': 'record.newTitle',
   'record/[id]': 'record.editTitle',
   'odometer/new': 'odometer.newTitle',

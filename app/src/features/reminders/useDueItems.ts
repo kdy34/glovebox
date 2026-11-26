@@ -6,10 +6,8 @@ import { listOdometerReadings } from '@/data/repositories/odometer';
 import { buildDueItems, type DueItem } from '@/domain/dueItems';
 import type { MaintenanceRuleRow, VehicleRow } from '@/data/types';
 
-/** Today as a local YYYY-MM-DD (service dates are calendar dates). */
-export function localToday(d = new Date()): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { localToday } from './format';
+export { localToday };
 
 export type AppDueItem = DueItem<VehicleRow, MaintenanceRuleRow>;
 

@@ -1,7 +1,8 @@
 // Maintenance rule input (T062/T064, FR-018). Mirrors the maintenance_rules checks so the form
 // can explain a problem before the write is queued.
 import type { ServiceCategory } from './categories';
-import type { GenericRule } from './genericRules';
+import { genericStarterSet, type GenericRule } from './genericRules';
+import type { FuelType } from './fuelType';
 
 export interface RuleFormInput {
   name: string;
@@ -87,4 +88,16 @@ export function baselineFromRecords(
   let best: (typeof records)[number] | null = null;
   for (const r of records) if (r.kind === 'service' && r.category === category && (!best || r.performed_on > best.performed_on)) best = r;
   return best ? { last_done_on: best.performed_on, last_done_odometer: best.odometer } : null;
+}
+
+/** Generic starter rules for this fuel type that the car doesn't already have (T064). */
+export function genericSuggestions(
+  fuelType: FuelType,
+  existing: readonly { name: string; service_category: string; interval_miles: number | null; interval_months: number | null }[],
+  nameOf: (key: string) => string,
+): GenericRule[] {
+  const norm = (s: string) => s.trim().toLowerCase();
+  return genericStarterSet(fuelType).filter((g) => !existing.some((r) =>
+    norm(r.name) === norm(nameOf(g.key)) ||
+    (r.service_category === g.serviceCategory && r.interval_miles === g.intervalMiles && r.interval_months === g.intervalMonths)));
 }

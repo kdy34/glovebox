@@ -8,7 +8,7 @@ import { normalizeVin, validateVin } from '@/domain/vin';
 import { decodeVin } from '@/services/vinDecoder';
 import { FUEL_TYPES, DEFAULT_FUEL_TYPE, parseFuelType, showsElectricNotice, type FuelType } from '@/domain/fuelType';
 import { applyVinSuggestions, vinSuggestions, type SuggestionField, type VinSuggestion } from '@/domain/vinSuggestion';
-import { useVehicle, useSaveVehicle, useArchiveVehicle, useDeleteVehicle } from '@/data/queries';
+import { useVehicle, useSaveVehicle, useArchiveVehicle, useDeleteVehicle, useRules } from '@/data/queries';
 import { Button, Card, Divider, Screen, TextField, SegmentedControl, Text } from '@/ui/components';
 import { useTheme } from '@/ui/theme';
 import { reportSaveError } from '@/services/saveError';
@@ -18,6 +18,7 @@ export default function EditVehicle() {
   const { t: tr } = useTranslation();
   const t = useTheme();
   const { data: vehicle } = useVehicle(id ?? '');
+  const { data: rules = [] } = useRules(id ?? '');
   const { mutateAsync: save, isPending } = useSaveVehicle();
   const { mutateAsync: archive } = useArchiveVehicle();
   const { mutateAsync: deleteVehicle } = useDeleteVehicle();
@@ -256,7 +257,8 @@ export default function EditVehicle() {
           options={FUEL_TYPES.map((f) => ({ value: f, label: tr(`vehicle.fuel.${f}`) }))}
         />
 
-        {vehicle && showsElectricNotice(parseFuelType(vehicle.fuel_type), fuel) ? (
+        {/* 002 FR-006: only for a car that has reminders (001 T064) */}
+        {vehicle && rules.length > 0 && showsElectricNotice(parseFuelType(vehicle.fuel_type), fuel) ? (
           <Text variant="footnote" color="textMuted" accessibilityLiveRegion="polite">{tr('vehicle.electricNotice')}</Text>
         ) : null}
 
