@@ -236,7 +236,7 @@
 - [ ] T092 Run quickstart.md end to end on a real iPhone and record the results.
 - [ ] T093 [P] Run a 5-person moderated usability test (sign up → add car → first record) and record the median time for SC-001 in `docs/qa/usability-sc001.md`.
 - [ ] T094 [US2] Support multi-page receipts: allow up to 3 images per scan in `app/app/scan/index.tsx`, and send them as one request to `supabase/functions/extract-receipt/index.ts` (the edge case "receipt split across two photos").
-- [ ] T095 [P] Add a nightly storage orphan sweep (objects with no matching `attachments` or `vehicles` row, and exports older than 24 h) as a scheduled function in `supabase/functions/storage-sweep/index.ts`, together with its cron entry.
+- [x] T095 [P] Add a nightly storage orphan sweep (objects with no matching `attachments` or `vehicles` row, and exports older than 24 h) as a scheduled function in `supabase/functions/storage-sweep/index.ts`, together with its cron entry. Extended 2026-11-25: attachments with no `record_id` older than 24 h (scans the user never saved, e.g. left with the back gesture) are deleted together with their files; orphan objects younger than 24 h are kept because the app uploads before inserting the row. Logic in `supabase/functions/_shared/sweep.ts`; the function requires the `SWEEP_SECRET` header; the cron entry is `supabase/cron/storage-sweep.sql` (pg_cron + pg_net + Vault, run once per environment). Test: `supabase/functions/storage-sweep/index.test.ts`.
 
 ## Converge: offline record sync (FR-010 / FR-022)
 

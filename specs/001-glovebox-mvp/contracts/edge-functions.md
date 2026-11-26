@@ -179,3 +179,18 @@ Records and their line items are saved atomically with the RPC `save_record(reco
 2. replaces its line items
 3. upserts the linked odometer reading
 4. resets any matching rules (FR-022)
+
+---
+
+## `POST /storage-sweep` (T095, internal)
+
+Nightly housekeeping, called by pg_cron (`supabase/cron/storage-sweep.sql`). Not for clients.
+
+**Auth**: header `x-sweep-secret` must equal the `SWEEP_SECRET` function secret (constant-time compare). No JWT (`verify_jwt = false`). If the secret isn't configured, every call gets 401.
+
+**Processing** (service role):
+1. Delete `attachments` with `record_id is null` older than 24 h, and their files in `receipts` (their `receipt_extractions` rows cascade).
+2. Remove objects older than 24 h with no matching row: `receipts/*` without an `attachments` row, `vehicle-photos/{uid}/{vehicle_id}/*` without a `vehicles` row. Younger objects are kept (the app uploads before inserting the row).
+3. Remove exports older than 24 h.
+
+**200 Response**: `{ "unlinkedAttachments": 2, "orphanObjects": 1, "expiredExports": 0 }`. **401** `unauthorized`.

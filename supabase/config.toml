@@ -67,6 +67,11 @@ import_map = "./functions/deno.json"
 verify_jwt = false
 import_map = "./functions/deno.json"
 
+[functions.storage-sweep]
+# Called by pg_cron with the SWEEP_SECRET header, not a user JWT (supabase/cron/storage-sweep.sql).
+verify_jwt = false
+import_map = "./functions/deno.json"
+
 [functions.revenuecat-webhook]
 verify_jwt = false
 import_map = "./functions/deno.json"
